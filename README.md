@@ -22,7 +22,7 @@ Command-Center provides reusable slash commands that can be deployed to your AI 
 Install once and use everywhere:
 
 ```bash
-uv tool install cmdctl --from git+https://github.com/brimdor/command-center.git
+uv tool install command-center --from git+https://github.com/brimdor/command-center.git
 ```
 
 Then bootstrap your workflows:
