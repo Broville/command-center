@@ -16,16 +16,33 @@ Command-Center provides reusable slash commands that can be deployed to your AI 
 
 ## Installation
 
-### Prerequisites
+### Option 1: CLI Tool (Recommended)
 
-- **Opencode** or **Antigravity** AI coding assistant installed
-- Bash shell (Linux/macOS/WSL)
+#### Persistent Installation
+Install once and use everywhere:
 
-### Quick Start
+```bash
+uv tool install cmdctl --from git+https://github.com/brimdor/command-center.git
+```
+
+Then bootstrap your workflows:
+```bash
+cmdctl init           # Bootstrap to all detected IDEs
+cmdctl init --opencode    # Bootstrap only to Opencode
+cmdctl check          # Verify installation
+```
+
+#### One-time Usage
+Run directly without installing:
+```bash
+uvx --from git+https://github.com/brimdor/command-center.git cmdctl init
+```
+
+### Option 2: Manual (Legacy)
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/command-center.git
+git clone https://github.com/brimdor/command-center.git
 cd command-center
 
 # Run the bootstrap script
