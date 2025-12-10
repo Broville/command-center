@@ -155,6 +155,7 @@ The constitution is located at `.specify/memory/constitution.md` relative to the
 ---
 
 ### Phase 7: Remediation
+
 - Process issues by severity
 - Fix constitution violations, missing artifacts, ambiguous requirements, coverage gaps
 - Re-run analysis
@@ -165,6 +166,7 @@ The constitution is located at `.specify/memory/constitution.md` relative to the
 ---
 
 ### Phase 8: Implementation
+
 - Check checklists
 - Load implementation context
 - Project setup (ignore files)
@@ -178,6 +180,7 @@ The constitution is located at `.specify/memory/constitution.md` relative to the
 ---
 
 ### Phase 9: Testing & Validation
+
 - Prepare test environment
 - Execute test suites (unit, integration, contract, linting, security, E2E, visual, accessibility, cross-browser, performance)
 - Perform interactive browser validation (live testing with real browser)
@@ -194,6 +197,7 @@ The constitution is located at `.specify/memory/constitution.md` relative to the
 ## Appendix Reference
 
 For detailed information on:
+
 - **Appendix A**: Constitution Creation
 - **Appendix B**: Human Intervention Points
 - **Appendix C**: Script Reference

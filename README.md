@@ -33,6 +33,7 @@ cd command-center
 ```
 
 The bootstrap script will:
+
 1. Auto-detect installed IDEs (Opencode, Antigravity)
 2. Copy workflow commands to global locations
 3. Copy supporting files (phase docs, templates, constitution)
@@ -50,7 +51,7 @@ The bootstrap script will:
 
 ## File Structure
 
-```
+```text
 command-center/
 ├── do-the-thing.md          # Main SDD orchestrator command
 ├── commit.md                # Commit/push/PR workflow
