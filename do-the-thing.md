@@ -52,11 +52,12 @@ Each phase is documented in detail in separate files. The workflow uses **path r
 
 ### Path Resolution Order
 
-1. **Project-local** (preferred): `.do-the-thing/` in the current project directory
-2. **Global Opencode**: `~/.config/opencode/.do-the-thing/`
-3. **Global Antigravity**: `~/.gemini/antigravity/.do-the-thing/`
+Phase and appendix markdown files are located in **global app-specific directories**:
 
-> **Note**: Project-local files take precedence, allowing project-specific customizations while using global defaults.
+1. **Global Opencode**: `~/.config/opencode/.do-the-thing/`
+2. **Global Antigravity**: `~/.gemini/antigravity/.do-the-thing/`
+
+> **Note**: The workflow will use the appropriate global location based on which app (Opencode or Antigravity) is executing the command.
 
 ### Phase Files
 
@@ -76,9 +77,10 @@ Each phase is documented in detail in separate files. The workflow uses **path r
 
 ### Constitution Location
 
-The constitution is located at `.specify/memory/constitution.md` relative to the `.do-the-thing/` directory:
-- Project-local: `.do-the-thing/.specify/memory/constitution.md`
-- Global: `~/.config/opencode/.do-the-thing/.specify/memory/constitution.md` or `~/.gemini/antigravity/.do-the-thing/.specify/memory/constitution.md`
+The constitution is located at `.specify/memory/constitution.md` relative to the `.do-the-thing/` directory in the global app-specific location:
+
+- **Global Opencode**: `~/.config/opencode/.do-the-thing/.specify/memory/constitution.md`
+- **Global Antigravity**: `~/.gemini/antigravity/.do-the-thing/.specify/memory/constitution.md`
 
 ---
 
@@ -93,7 +95,7 @@ The constitution is located at `.specify/memory/constitution.md` relative to the
 - Validate user input
 - Assess current state
 
-**See**: [Phase 1 Details](.do-the-thing/do-the-thing-phase-1.md)
+**See**: `do-the-thing-phase-1.md` in the global `.do-the-thing/` directory
 
 ---
 
@@ -105,7 +107,7 @@ The constitution is located at `.specify/memory/constitution.md` relative to the
 - Write specification
 - Create quality checklists
 
-**See**: [Phase 2 Details](.do-the-thing/do-the-thing-phase-2.md)
+**See**: `do-the-thing-phase-2.md` in the global `.do-the-thing/` directory
 
 ---
 
@@ -116,7 +118,7 @@ The constitution is located at `.specify/memory/constitution.md` relative to the
 - Ask questions sequentially
 - Update spec with answers
 
-**See**: [Phase 3 Details](.do-the-thing/do-the-thing-phase-3.md)
+**See**: `do-the-thing-phase-3.md` in the global `.do-the-thing/` directory
 
 ---
 
@@ -129,7 +131,7 @@ The constitution is located at `.specify/memory/constitution.md` relative to the
 - Update agent context
 - Determine project structure
 
-**See**: [Phase 4 Details](.do-the-thing/do-the-thing-phase-4.md)
+**See**: `do-the-thing-phase-4.md` in the global `.do-the-thing/` directory
 
 ---
 
@@ -139,7 +141,7 @@ The constitution is located at `.specify/memory/constitution.md` relative to the
 - Generate tasks organized by phase
 - Validate task completeness
 
-**See**: [Phase 5 Details](.do-the-thing/do-the-thing-phase-5.md)
+**See**: `do-the-thing-phase-5.md` in the global `.do-the-thing/` directory
 
 ---
 
@@ -150,7 +152,7 @@ The constitution is located at `.specify/memory/constitution.md` relative to the
 - Assign severity levels
 - Produce analysis report
 
-**See**: [Phase 6 Details](.do-the-thing/do-the-thing-phase-6.md)
+**See**: `do-the-thing-phase-6.md` in the global `.do-the-thing/` directory
 
 ---
 
@@ -161,7 +163,7 @@ The constitution is located at `.specify/memory/constitution.md` relative to the
 - Re-run analysis
 - Gate check until all CRITICAL/HIGH/MEDIUM issues resolved
 
-**See**: [Phase 7 Details](.do-the-thing/do-the-thing-phase-7.md)
+**See**: `do-the-thing-phase-7.md` in the global `.do-the-thing/` directory
 
 ---
 
@@ -175,8 +177,8 @@ The constitution is located at `.specify/memory/constitution.md` relative to the
 - Track progress
 - Report completion
 
-**See**: [Phase 8 Details](.do-the-thing/do-the-thing-phase-8.md)
-
+**See**: `do-the-thing-phase-8.md` in the global `.do-the-thing/` directory
+a
 ---
 
 ### Phase 9: Testing & Validation
@@ -190,7 +192,7 @@ The constitution is located at `.specify/memory/constitution.md` relative to the
 - Update constitution with new capabilities
 - Final completion
 
-**See**: [Phase 9 Details](.do-the-thing/do-the-thing-phase-9.md)
+**See**: `do-the-thing-phase-9.md` in the global `.do-the-thing/` directory
 
 ---
 
@@ -203,4 +205,4 @@ For detailed information on:
 - **Appendix C**: Script Reference
 - **Appendix D**: Output Format Examples
 
-**See**: [Appendix](.do-the-thing/do-the-thing-appendix.md)
+**See**: `do-the-thing-appendix.md` in the global `.do-the-thing/` directory
