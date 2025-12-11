@@ -62,7 +62,7 @@ Phase and appendix markdown files are located in **global app-specific directori
 ### Phase Files
 
 | Phase | Description | File |
-|-------|-------------|------|
+| :--- | :--- | :--- |
 | **Phase 1** | Context Loading | `do-the-thing-phase-1.md` |
 | **Phase 2** | Specification | `do-the-thing-phase-2.md` |
 | **Phase 3** | Clarification | `do-the-thing-phase-3.md` |
@@ -178,7 +178,7 @@ The constitution is located at `.specify/memory/constitution.md` relative to the
 - Report completion
 
 **See**: `do-the-thing-phase-8.md` in the global `.do-the-thing/` directory
-a
+
 ---
 
 ### Phase 9: Testing & Validation
