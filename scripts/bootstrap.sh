@@ -6,9 +6,9 @@
 # Similar to Spec-Kit's bootstrapping approach.
 #
 # Supported IDEs/Agents:
-#   - Opencode:     ~/.config/opencode/command/
-#   - Antigravity:  ~/.gemini/antigravity/global_workflows/
-#   - Gemini-CLI:   ~/.gemini/commands/
+#   - Opencode:     ~/.config/opencode/command/ (Markdown format)
+#   - Antigravity:  ~/.gemini/antigravity/global_workflows/ (Markdown format)
+#   - Gemini-CLI:   ~/.gemini/commands/ (TOML format)
 #
 # Usage:
 #   ./bootstrap.sh [options]
@@ -17,7 +17,7 @@
 #   --dry-run     Show what would be done without making changes
 #   --opencode    Bootstrap only to Opencode
 #   --antigravity Bootstrap only to Antigravity
-#   --gemini-cli  Bootstrap only to Gemini-CLI
+#   --gemini-cli  Bootstrap only to Gemini-CLI (uses TOML format)
 #   --all         Bootstrap to all detected IDEs (default)
 #   --help        Show this help message
 # ==============================================================================
@@ -136,6 +136,69 @@ detect_gemini_cli() {
 }
 
 # ==============================================================================
+# TOML Conversion Functions (for Gemini-CLI)
+# ==============================================================================
+
+# Convert a markdown command file (with YAML frontmatter) to TOML format
+# Usage: convert_md_to_toml <source_md_file> <dest_toml_file>
+convert_md_to_toml() {
+    local src="$1"
+    local dest="$2"
+    local filename
+    filename=$(basename "$src" .md)
+    
+    if [[ "$DRY_RUN" == "true" ]]; then
+        log_dry_run "Convert $src -> $dest (TOML format)"
+        return
+    fi
+    
+    # Extract description from YAML frontmatter
+    # Frontmatter is between first --- and second ---
+    local description
+    description=$(sed -n '/^---$/,/^---$/p' "$src" | grep -E '^description:' | sed 's/^description:[[:space:]]*//' | sed 's/^"//' | sed 's/"$//')
+    
+    # If no description found, use a default
+    if [[ -z "$description" ]]; then
+        description="Command: $filename"
+    fi
+    
+    # Extract body content (everything after the second ---)
+    # Use awk to skip the frontmatter and get everything after
+    local body
+    body=$(awk 'BEGIN{count=0} /^---$/{count++; if(count==2){getline; found=1}} found{print}' "$src")
+    
+    # Write TOML file
+    {
+        echo "description = \"$description\""
+        echo ""
+        echo "prompt = '''"
+        printf '%s\n' "$body"
+        echo "'''"
+    } > "$dest"
+    
+    log_success "Converted $(basename "$src") -> $(basename "$dest") (TOML format)"
+}
+
+# Clean up old markdown command files from Gemini-CLI commands directory
+cleanup_old_gemini_md_files() {
+    if [[ "$DRY_RUN" == "true" ]]; then
+        for file in "do-the-thing.md" "commit.md" "init.md"; do
+            if [[ -f "$GEMINI_CLI_COMMANDS/$file" ]]; then
+                log_dry_run "Remove old file $GEMINI_CLI_COMMANDS/$file"
+            fi
+        done
+        return
+    fi
+    
+    for file in "do-the-thing.md" "commit.md" "init.md"; do
+        if [[ -f "$GEMINI_CLI_COMMANDS/$file" ]]; then
+            rm -f "$GEMINI_CLI_COMMANDS/$file"
+            log_info "Removed old file: $GEMINI_CLI_COMMANDS/$file"
+        fi
+    done
+}
+
+# ==============================================================================
 # Bootstrap Functions
 # ==============================================================================
 
@@ -229,16 +292,19 @@ bootstrap_to_antigravity() {
 }
 
 bootstrap_to_gemini_cli() {
-    log_info "Bootstrapping to Gemini-CLI..."
+    log_info "Bootstrapping to Gemini-CLI (TOML format)..."
     
     # Create directories
     create_directory "$GEMINI_CLI_COMMANDS"
     create_directory "$GEMINI_CLI_SUPPORT"
     
-    # Copy command files
-    copy_file "$REPO_DIR/do-the-thing.md" "$GEMINI_CLI_COMMANDS/do-the-thing.md"
-    copy_file "$REPO_DIR/commit.md" "$GEMINI_CLI_COMMANDS/commit.md"
-    copy_file "$REPO_DIR/init.md" "$GEMINI_CLI_COMMANDS/init.md"
+    # Clean up old markdown command files
+    cleanup_old_gemini_md_files
+    
+    # Convert and copy command files as TOML
+    convert_md_to_toml "$REPO_DIR/do-the-thing.md" "$GEMINI_CLI_COMMANDS/do-the-thing.toml"
+    convert_md_to_toml "$REPO_DIR/commit.md" "$GEMINI_CLI_COMMANDS/commit.toml"
+    convert_md_to_toml "$REPO_DIR/init.md" "$GEMINI_CLI_COMMANDS/init.toml"
     
     # Copy support files (.do-the-thing directory contents)
     if [[ "$DRY_RUN" == "true" ]]; then
@@ -305,7 +371,7 @@ verify_installation() {
     
     if [[ "$TARGET_GEMINI_CLI" == "true" ]]; then
         echo -e "${CYAN}Gemini-CLI:${NC}"
-        for file in "do-the-thing.md" "commit.md" "init.md"; do
+        for file in "do-the-thing.toml" "commit.toml" "init.toml"; do
             if [[ -f "$GEMINI_CLI_COMMANDS/$file" ]]; then
                 echo -e "  ${GREEN}✓${NC} $GEMINI_CLI_COMMANDS/$file"
             else
