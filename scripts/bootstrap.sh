@@ -8,6 +8,7 @@
 # Supported IDEs/Agents:
 #   - Opencode:     ~/.config/opencode/command/
 #   - Antigravity:  ~/.gemini/antigravity/global_workflows/
+#   - Gemini-CLI:   ~/.gemini/commands/
 #
 # Usage:
 #   ./bootstrap.sh [options]
@@ -16,6 +17,7 @@
 #   --dry-run     Show what would be done without making changes
 #   --opencode    Bootstrap only to Opencode
 #   --antigravity Bootstrap only to Antigravity
+#   --gemini-cli  Bootstrap only to Gemini-CLI
 #   --all         Bootstrap to all detected IDEs (default)
 #   --help        Show this help message
 # ==============================================================================
@@ -39,11 +41,14 @@ OPENCODE_COMMANDS="$HOME/.config/opencode/command"
 OPENCODE_SUPPORT="$HOME/.config/opencode/.do-the-thing"
 ANTIGRAVITY_COMMANDS="$HOME/.gemini/antigravity/global_workflows"
 ANTIGRAVITY_SUPPORT="$HOME/.gemini/antigravity/.do-the-thing"
+GEMINI_CLI_COMMANDS="$HOME/.gemini/commands"
+GEMINI_CLI_SUPPORT="$HOME/.gemini/.do-the-thing"
 
 # Flags
 DRY_RUN=false
 TARGET_OPENCODE=false
 TARGET_ANTIGRAVITY=false
+TARGET_GEMINI_CLI=false
 
 # ==============================================================================
 # Helper Functions
@@ -85,12 +90,14 @@ show_help() {
     echo "  --dry-run       Show what would be done without making changes"
     echo "  --opencode      Bootstrap only to Opencode"
     echo "  --antigravity   Bootstrap only to Antigravity"
+    echo "  --gemini-cli    Bootstrap only to Gemini-CLI"
     echo "  --all           Bootstrap to all detected IDEs (default)"
     echo "  --help          Show this help message"
     echo ""
     echo "Examples:"
     echo "  $0                    # Bootstrap to all detected IDEs"
     echo "  $0 --opencode         # Bootstrap only to Opencode"
+    echo "  $0 --gemini-cli       # Bootstrap only to Gemini-CLI"
     echo "  $0 --dry-run          # Preview changes without applying"
 }
 
@@ -109,6 +116,20 @@ detect_opencode() {
 detect_antigravity() {
     # Check if Antigravity/Gemini directory exists
     if [[ -d "$HOME/.gemini/antigravity" ]]; then
+        return 0
+    fi
+    return 1
+}
+
+detect_gemini_cli() {
+    # Check if Gemini-CLI is installed
+    # Gemini-CLI uses ~/.gemini/ but NOT ~/.gemini/antigravity/ (that's Antigravity)
+    # Check for gemini command in PATH or ~/.gemini/commands/ or ~/.gemini/GEMINI.md
+    if command -v gemini &> /dev/null; then
+        return 0
+    fi
+    # Check for Gemini-CLI config files (but not just antigravity)
+    if [[ -f "$HOME/.gemini/GEMINI.md" ]] || [[ -d "$HOME/.gemini/commands" ]]; then
         return 0
     fi
     return 1
@@ -207,6 +228,32 @@ bootstrap_to_antigravity() {
     log_success "Antigravity bootstrap complete!"
 }
 
+bootstrap_to_gemini_cli() {
+    log_info "Bootstrapping to Gemini-CLI..."
+    
+    # Create directories
+    create_directory "$GEMINI_CLI_COMMANDS"
+    create_directory "$GEMINI_CLI_SUPPORT"
+    
+    # Copy command files
+    copy_file "$REPO_DIR/do-the-thing.md" "$GEMINI_CLI_COMMANDS/do-the-thing.md"
+    copy_file "$REPO_DIR/commit.md" "$GEMINI_CLI_COMMANDS/commit.md"
+    copy_file "$REPO_DIR/init.md" "$GEMINI_CLI_COMMANDS/init.md"
+    
+    # Copy support files (.do-the-thing directory contents)
+    if [[ "$DRY_RUN" == "true" ]]; then
+        log_dry_run "Copy .do-the-thing/* -> $GEMINI_CLI_SUPPORT/"
+    else
+        # Remove existing and copy fresh
+        rm -rf "$GEMINI_CLI_SUPPORT"
+        cp -r "$REPO_DIR/.do-the-thing" "$GEMINI_CLI_SUPPORT"
+        log_success "Copied .do-the-thing support files to $GEMINI_CLI_SUPPORT"
+    fi
+    
+    echo ""
+    log_success "Gemini-CLI bootstrap complete!"
+}
+
 # ==============================================================================
 # Verification Functions
 # ==============================================================================
@@ -218,7 +265,7 @@ verify_installation() {
     
     local all_ok=true
     
-    if [[ "$TARGET_OPENCODE" == "true" ]] || [[ "$TARGET_ANTIGRAVITY" == "false" && "$TARGET_OPENCODE" == "false" ]]; then
+    if [[ "$TARGET_OPENCODE" == "true" ]]; then
         echo -e "${CYAN}Opencode:${NC}"
         for file in "do-the-thing.md" "commit.md" "init.md"; do
             if [[ -f "$OPENCODE_COMMANDS/$file" ]]; then
@@ -237,7 +284,7 @@ verify_installation() {
         echo ""
     fi
     
-    if [[ "$TARGET_ANTIGRAVITY" == "true" ]] || [[ "$TARGET_ANTIGRAVITY" == "false" && "$TARGET_OPENCODE" == "false" ]]; then
+    if [[ "$TARGET_ANTIGRAVITY" == "true" ]]; then
         echo -e "${CYAN}Antigravity:${NC}"
         for file in "do-the-thing.md" "commit.md" "init.md"; do
             if [[ -f "$ANTIGRAVITY_COMMANDS/$file" ]]; then
@@ -251,6 +298,25 @@ verify_installation() {
             echo -e "  ${GREEN}✓${NC} $ANTIGRAVITY_SUPPORT/"
         else
             echo -e "  ${RED}✗${NC} $ANTIGRAVITY_SUPPORT/ (missing)"
+            all_ok=false
+        fi
+        echo ""
+    fi
+    
+    if [[ "$TARGET_GEMINI_CLI" == "true" ]]; then
+        echo -e "${CYAN}Gemini-CLI:${NC}"
+        for file in "do-the-thing.md" "commit.md" "init.md"; do
+            if [[ -f "$GEMINI_CLI_COMMANDS/$file" ]]; then
+                echo -e "  ${GREEN}✓${NC} $GEMINI_CLI_COMMANDS/$file"
+            else
+                echo -e "  ${RED}✗${NC} $GEMINI_CLI_COMMANDS/$file (missing)"
+                all_ok=false
+            fi
+        done
+        if [[ -d "$GEMINI_CLI_SUPPORT" ]]; then
+            echo -e "  ${GREEN}✓${NC} $GEMINI_CLI_SUPPORT/"
+        else
+            echo -e "  ${RED}✗${NC} $GEMINI_CLI_SUPPORT/ (missing)"
             all_ok=false
         fi
         echo ""
@@ -283,9 +349,14 @@ main() {
                 TARGET_ANTIGRAVITY=true
                 shift
                 ;;
+            --gemini-cli)
+                TARGET_GEMINI_CLI=true
+                shift
+                ;;
             --all)
                 TARGET_OPENCODE=false
                 TARGET_ANTIGRAVITY=false
+                TARGET_GEMINI_CLI=false
                 shift
                 ;;
             --help|-h)
@@ -315,7 +386,7 @@ main() {
     fi
     
     # Auto-detect if no specific target
-    if [[ "$TARGET_OPENCODE" == "false" && "$TARGET_ANTIGRAVITY" == "false" ]]; then
+    if [[ "$TARGET_OPENCODE" == "false" && "$TARGET_ANTIGRAVITY" == "false" && "$TARGET_GEMINI_CLI" == "false" ]]; then
         log_info "Auto-detecting available IDEs..."
         
         if detect_opencode; then
@@ -332,11 +403,18 @@ main() {
             log_warning "Not detected: Antigravity"
         fi
         
+        if detect_gemini_cli; then
+            log_success "Detected: Gemini-CLI"
+            TARGET_GEMINI_CLI=true
+        else
+            log_warning "Not detected: Gemini-CLI"
+        fi
+        
         echo ""
         
-        if [[ "$TARGET_OPENCODE" == "false" && "$TARGET_ANTIGRAVITY" == "false" ]]; then
+        if [[ "$TARGET_OPENCODE" == "false" && "$TARGET_ANTIGRAVITY" == "false" && "$TARGET_GEMINI_CLI" == "false" ]]; then
             log_error "No supported IDEs detected!"
-            log_info "Make sure Opencode or Antigravity is installed."
+            log_info "Make sure Opencode, Antigravity, or Gemini-CLI is installed."
             exit 1
         fi
     fi
@@ -348,6 +426,10 @@ main() {
     
     if [[ "$TARGET_ANTIGRAVITY" == "true" ]]; then
         bootstrap_to_antigravity
+    fi
+    
+    if [[ "$TARGET_GEMINI_CLI" == "true" ]]; then
+        bootstrap_to_gemini_cli
     fi
     
     # Verify installation (skip for dry run)
