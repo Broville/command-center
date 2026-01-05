@@ -38,16 +38,27 @@ build-backend = "hatchling.build"
 packages = ["src/command_center"]
 
 [tool.hatch.build.targets.wheel.force-include]
-"do-the-thing.md" = "command_center/assets/do-the-thing.md"
-"commit.md" = "command_center/assets/commit.md"
-"init.md" = "command_center/assets/init.md"
+# Commands (workflow files)
+"commands/do-the-thing.md" = "command_center/assets/commands/do-the-thing.md"
+"commands/commit.md" = "command_center/assets/commands/commit.md"
+"commands/init.md" = "command_center/assets/commands/init.md"
+"commands/create_mcp.md" = "command_center/assets/commands/create_mcp.md"
+"commands/homelab-action.md" = "command_center/assets/commands/homelab-action.md"
+"commands/homelab-recon.md" = "command_center/assets/commands/homelab-recon.md"
+"commands/homelab-troubleshoot.md" = "command_center/assets/commands/homelab-troubleshoot.md"
+# Rules (reference files)
+"rules/HOMELAB_foundational_rules.md" = "command_center/assets/rules/HOMELAB_foundational_rules.md"
+"rules/HOMELAB_network.md" = "command_center/assets/rules/HOMELAB_network.md"
+"rules/HOMELAB_cluster.md" = "command_center/assets/rules/HOMELAB_cluster.md"
+"rules/HOMELAB_access.md" = "command_center/assets/rules/HOMELAB_access.md"
+"rules/homelab-reference.md" = "command_center/assets/rules/homelab-reference.md"
+# Support directory
 ".do-the-thing" = "command_center/assets/.do-the-thing"
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "do-the-thing.md",
-    "commit.md",
-    "init.md",
+    "commands/**",
+    "rules/**",
     ".do-the-thing/**",
     "src/**",
     "scripts/**",

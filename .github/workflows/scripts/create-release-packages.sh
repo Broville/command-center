@@ -46,6 +46,39 @@ SUPPORT_DIR=".do-the-thing"
 # Build Functions
 # ==============================================================================
 
+# Convert a markdown command file (with YAML frontmatter) to TOML format
+# Usage: convert_md_to_toml <source_md_file> <dest_toml_file>
+convert_md_to_toml() {
+  local src="$1"
+  local dest="$2"
+  local filename
+  filename=$(basename "$src" .md)
+  
+  # Extract description from YAML frontmatter
+  local description
+  description=$(sed -n '/^---$/,/^---$/p' "$src" | grep -E '^description:' | sed 's/^description:[[:space:]]*//' | sed 's/^"//' | sed 's/"$//')
+  
+  # If no description found, use a default
+  if [[ -z "$description" ]]; then
+    description="Command: $filename"
+  fi
+  
+  # Extract body content (everything after the second ---)
+  local body
+  body=$(awk 'BEGIN{count=0} /^---$/{count++; if(count==2){getline; found=1}} found{print}' "$src")
+  
+  # Write TOML file
+  {
+    echo "description = \"$description\""
+    echo ""
+    echo "prompt = '''"
+    printf '%s\n' "$body"
+    echo "'''"
+  } > "$dest"
+  
+  echo "  Converted $src -> $(basename "$dest") (TOML)"
+}
+
 build_opencode_package() {
   local base_dir="$GENRELEASES_DIR/command-center-opencode"
   echo "Building Opencode package..."
@@ -108,12 +141,43 @@ build_antigravity_package() {
   echo "Created $GENRELEASES_DIR/$zip_name"
 }
 
+build_gemini_cli_package() {
+  local base_dir="$GENRELEASES_DIR/command-center-gemini-cli"
+  echo "Building Gemini-CLI package..."
+  
+  mkdir -p "$base_dir/.gemini/commands"
+  mkdir -p "$base_dir/.gemini/.do-the-thing"
+  
+  # Convert command files to TOML
+  for cmd in "${COMMAND_FILES[@]}"; do
+    if [[ -f "$cmd" ]]; then
+      local base_name=$(basename "$cmd" .md)
+      convert_md_to_toml "$cmd" "$base_dir/.gemini/commands/${base_name}.toml"
+    else
+      echo "  Warning: $cmd not found" >&2
+    fi
+  done
+  
+  # Copy support files
+  if [[ -d "$SUPPORT_DIR" ]]; then
+    cp -r "$SUPPORT_DIR"/. "$base_dir/.gemini/.do-the-thing/"
+    echo "  Copied $SUPPORT_DIR/* -> .gemini/.do-the-thing/"
+  else
+    echo "  Warning: $SUPPORT_DIR not found" >&2
+  fi
+  
+  # Create ZIP
+  local zip_name="command-center-gemini-cli-${NEW_VERSION}.zip"
+  (cd "$base_dir" && zip -r "../$zip_name" .)
+  echo "Created $GENRELEASES_DIR/$zip_name"
+}
+
 # ==============================================================================
 # Main
 # ==============================================================================
 
 # Determine which agents to build
-ALL_AGENTS=(opencode antigravity)
+ALL_AGENTS=(opencode antigravity gemini-cli)
 
 norm_list() {
   tr ',\n' '  ' | awk '{for(i=1;i<=NF;i++){if(!seen[$i]++){printf((out?"\n":"") $i);out=1}}}END{printf("\n")}'
@@ -147,6 +211,9 @@ for agent in "${AGENT_LIST[@]}"; do
       ;;
     antigravity)
       build_antigravity_package
+      ;;
+    gemini-cli)
+      build_gemini_cli_package
       ;;
   esac
   echo ""

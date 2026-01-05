@@ -44,9 +44,27 @@ OPENCODE_COMMANDS = Path.home() / ".config" / "opencode" / "command"
 OPENCODE_SUPPORT = Path.home() / ".config" / "opencode" / ".do-the-thing"
 ANTIGRAVITY_COMMANDS = Path.home() / ".gemini" / "antigravity" / "global_workflows"
 ANTIGRAVITY_SUPPORT = Path.home() / ".gemini" / "antigravity" / ".do-the-thing"
+ANTIGRAVITY_SUB_RULES = Path.home() / ".gemini" / "SUB_RULES"
 
-# Source files (relative to package)
-WORKFLOW_FILES = ["do-the-thing.md", "commit.md", "init.md"]
+# Source files (relative to package assets directory)
+# Commands are workflow files invoked via /command
+COMMAND_FILES = [
+    "do-the-thing.md",
+    "commit.md",
+    "init.md",
+    "create_mcp.md",
+    "homelab-action.md",
+    "homelab-recon.md",
+    "homelab-troubleshoot.md",
+]
+# Rules are reference files auto-loaded for context
+RULE_FILES = [
+    "HOMELAB_foundational_rules.md",
+    "HOMELAB_network.md",
+    "HOMELAB_cluster.md",
+    "HOMELAB_access.md",
+    "homelab-reference.md",
+]
 SUPPORT_DIR = ".do-the-thing"
 
 
@@ -111,15 +129,27 @@ def bootstrap_to_target(
     """Bootstrap workflow files to a target IDE."""
     success = True
 
-    # Copy workflow files
-    for filename in WORKFLOW_FILES:
-        src = assets_dir / filename
+    # Copy command files (from assets/commands/)
+    commands_src = assets_dir / "commands"
+    for filename in COMMAND_FILES:
+        src = commands_src / filename
         if src.exists():
             if not copy_file(src, commands_dir / filename, dry_run):
                 success = False
         else:
-            console.print(f"  [warning]![/warning] Asset missing: {filename}")
+            console.print(f"  [warning]![/warning] Asset missing: commands/{filename}")
             success = False
+
+    # Copy rule files (from assets/rules/) to commands directory
+    # Both IDEs get rules in their commands directory for easy access
+    rules_src = assets_dir / "rules"
+    for filename in RULE_FILES:
+        src = rules_src / filename
+        if src.exists():
+            if not copy_file(src, commands_dir / filename, dry_run):
+                success = False
+        else:
+            console.print(f"  [warning]![/warning] Asset missing: rules/{filename}")
 
     # Copy support directory
     src_support = assets_dir / SUPPORT_DIR
@@ -128,6 +158,97 @@ def bootstrap_to_target(
             success = False
     else:
         console.print(f"  [warning]![/warning] Support dir missing: {SUPPORT_DIR}")
+
+    # Special handling for Antigravity SUB_RULES hierarchy
+    if name == "Antigravity":
+        # Deploy Sub-Rules to ~/.gemini/SUB_RULES/ with HOMELAB_ prefix where needed
+        sub_rules_map = {
+            "HOMELAB_foundational_rules.md": "HOMELAB_foundational_rules.md",
+            "HOMELAB_network.md": "HOMELAB_network.md",
+            "HOMELAB_cluster.md": "HOMELAB_cluster.md",
+            "HOMELAB_access.md": "HOMELAB_access.md",
+            "homelab-reference.md": "HOMELAB_reference.md",
+        }
+        
+        for src_name, dest_name in sub_rules_map.items():
+            src_file = rules_src / src_name
+            if src_file.exists():
+                 if not copy_file(src_file, ANTIGRAVITY_SUB_RULES / dest_name, dry_run):
+                     success = False
+
+        # 2. Update GEMINI.md Master Rule with links to modular sub-rules
+        gemini_master = Path.home() / ".gemini" / "GEMINI.md"
+        gemini_content = """# Antigravity Global Rules & Reference (GEMINI)
+
+This file serves as the **Master Table of Contents** for all project-specific rules and global context.
+**You MUST strictly adhere to the rules defined for your active project.**
+
+---
+
+## 🏗️ Project Rules (Table of Contents)
+
+Identify the current project context and apply the corresponding rules.
+
+### 1. Homelab Infrastructure
+**Triggers**: Working on `homelab` repo, Kubernetes, Ceph, ArgoCD, OPNSense, or `ops/homelab`.
+
+> [!CAUTION]
+> **Foundational Rules Apply**: You MUST follow the Homelab Foundational Rules.
+> - **ALL GREEN** status required across Metal, System, Platform, and Apps layers.
+> - **Zero Tolerance** for issues.
+> - **No Pause** until complete.
+
+**Sub-Rules** (located in `~/.gemini/SUB_RULES/`):
+- [Foundational Rules](file:///home/brimdor/.gemini/SUB_RULES/HOMELAB_foundational_rules.md) - ABSOLUTE rules (1-7)
+- [Network Reference](file:///home/brimdor/.gemini/SUB_RULES/HOMELAB_network.md) - VLANs, devices
+- [Cluster Reference](file:///home/brimdor/.gemini/SUB_RULES/HOMELAB_cluster.md) - Nodes, services, storage
+- [Access Reference](file:///home/brimdor/.gemini/SUB_RULES/HOMELAB_access.md) - SSH, kubectl, external access
+- [Master Reference](file:///home/brimdor/.gemini/SUB_RULES/HOMELAB_reference.md) - Table of Contents
+
+**Workflows**:
+- `/homelab-recon` - Health check & maintenance report
+- `/homelab-action` - Execute maintenance items
+- `/homelab-troubleshoot` - Diagnose issues
+
+### 2. Command Center
+**Triggers**: Working on `command-center` repo, `cmdctl` CLI.
+
+- **Objective**: Bootstrap global workflows to user environments.
+- **Rule**: Ensure `assets/` directory covers ALL global rules.
+- **Build**: Verify `pyproject.toml` includes all assets.
+
+---
+
+## 🛠️ Global Tool Configurations
+
+### Gitea API Configuration
+
+**Token Location**: `~/.config/gitea/.env`
+
+**Environment Variables**:
+- `GITEA_TOKEN`: API access token
+- `GITEA_URL`: `https://git.eaglepass.io`
+
+**Usage**:
+```bash
+source ~/.config/gitea/.env
+curl -H "Authorization: token $GITEA_TOKEN" "$GITEA_URL/api/v1/..."
+```
+
+**Common Endpoints**:
+- API Docs: https://git.eaglepass.io/api/swagger
+- Primary Repo: `ops/homelab`
+"""
+        if not dry_run:
+            try:
+                gemini_master.parent.mkdir(parents=True, exist_ok=True)
+                gemini_master.write_text(gemini_content)
+                console.print(f"  [green]✓[/green] Updated GEMINI.md Master Rule at {gemini_master}")
+            except Exception as e:
+                console.print(f"  [red]![/red] Failed to update GEMINI.md: {e}")
+                success = False
+        else:
+             console.print(f"  [cyan]~[/cyan] Would update GEMINI.md Master Rule to {gemini_master}")
 
     return success
 
