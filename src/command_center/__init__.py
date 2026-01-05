@@ -90,13 +90,13 @@ def detect_antigravity() -> bool:
 def copy_file(src: Path, dest: Path, dry_run: bool = False) -> bool:
     """Copy a file, creating parent directories as needed."""
     if dry_run:
-        console.print(f"  [warning]DRY RUN:[/warning] Copy {src.name} -> {dest}")
+        console.print(f"  [cyan]~[/cyan] Would copy {src.name} -> {dest}")
         return True
 
     try:
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dest)
-        # console.print(f"  [success]✓[/success] Copied {src.name}") # Too verbose for wizard
+        console.print(f"  [success]✓[/success] {src.name}")
         return True
     except Exception as e:
         console.print(f"  [error]✗[/error] Failed to copy {src.name}: {e}")
@@ -106,13 +106,14 @@ def copy_file(src: Path, dest: Path, dry_run: bool = False) -> bool:
 def copy_directory(src: Path, dest: Path, dry_run: bool = False) -> bool:
     """Copy a directory recursively."""
     if dry_run:
-        console.print(f"  [warning]DRY RUN:[/warning] Copy directory {src.name}/ -> {dest}")
+        console.print(f"  [cyan]~[/cyan] Would copy {src.name}/ -> {dest}")
         return True
 
     try:
         if dest.exists():
             shutil.rmtree(dest)
         shutil.copytree(src, dest)
+        console.print(f"  [success]✓[/success] {src.name}/ (directory)")
         return True
     except Exception as e:
         console.print(f"  [error]✗[/error] Failed to copy {src.name}/: {e}")
@@ -128,30 +129,41 @@ def bootstrap_to_target(
 ) -> bool:
     """Bootstrap workflow files to a target IDE."""
     success = True
+    cmd_count = 0
+    rule_count = 0
+
+    console.print(f"\n[bold cyan]Setting up {name}[/bold cyan]")
+    console.print(f"  [dim]Commands: {commands_dir}[/dim]")
 
     # Copy command files (from assets/commands/)
+    console.print("\n  [bold]Commands:[/bold]")
     commands_src = assets_dir / "commands"
     for filename in COMMAND_FILES:
         src = commands_src / filename
         if src.exists():
-            if not copy_file(src, commands_dir / filename, dry_run):
+            if copy_file(src, commands_dir / filename, dry_run):
+                cmd_count += 1
+            else:
                 success = False
         else:
             console.print(f"  [warning]![/warning] Asset missing: commands/{filename}")
             success = False
 
     # Copy rule files (from assets/rules/) to commands directory
-    # Both IDEs get rules in their commands directory for easy access
+    console.print("\n  [bold]Rules:[/bold]")
     rules_src = assets_dir / "rules"
     for filename in RULE_FILES:
         src = rules_src / filename
         if src.exists():
-            if not copy_file(src, commands_dir / filename, dry_run):
+            if copy_file(src, commands_dir / filename, dry_run):
+                rule_count += 1
+            else:
                 success = False
         else:
             console.print(f"  [warning]![/warning] Asset missing: rules/{filename}")
 
     # Copy support directory
+    console.print("\n  [bold]Support:[/bold]")
     src_support = assets_dir / SUPPORT_DIR
     if src_support.exists():
         if not copy_directory(src_support, support_dir, dry_run):
@@ -161,6 +173,9 @@ def bootstrap_to_target(
 
     # Special handling for Antigravity SUB_RULES hierarchy
     if name == "Antigravity":
+        console.print("\n  [bold]Antigravity Extras:[/bold]")
+        console.print(f"  [dim]SUB_RULES: {ANTIGRAVITY_SUB_RULES}[/dim]")
+        
         # Deploy Sub-Rules to ~/.gemini/SUB_RULES/ with HOMELAB_ prefix where needed
         sub_rules_map = {
             "HOMELAB_foundational_rules.md": "HOMELAB_foundational_rules.md",
@@ -176,7 +191,7 @@ def bootstrap_to_target(
                  if not copy_file(src_file, ANTIGRAVITY_SUB_RULES / dest_name, dry_run):
                      success = False
 
-        # 2. Update GEMINI.md Master Rule with links to modular sub-rules
+        # Update GEMINI.md Master Rule with links to modular sub-rules
         gemini_master = Path.home() / ".gemini" / "GEMINI.md"
         gemini_content = """# Antigravity Global Rules & Reference (GEMINI)
 
@@ -243,12 +258,19 @@ curl -H "Authorization: token $GITEA_TOKEN" "$GITEA_URL/api/v1/..."
             try:
                 gemini_master.parent.mkdir(parents=True, exist_ok=True)
                 gemini_master.write_text(gemini_content)
-                console.print(f"  [green]✓[/green] Updated GEMINI.md Master Rule at {gemini_master}")
+                console.print(f"  [success]✓[/success] GEMINI.md (master rule)")
             except Exception as e:
-                console.print(f"  [red]![/red] Failed to update GEMINI.md: {e}")
+                console.print(f"  [error]✗[/error] Failed to update GEMINI.md: {e}")
                 success = False
         else:
-             console.print(f"  [cyan]~[/cyan] Would update GEMINI.md Master Rule to {gemini_master}")
+             console.print(f"  [cyan]~[/cyan] Would update GEMINI.md at {gemini_master}")
+
+    # Summary
+    total = cmd_count + rule_count
+    if success:
+        console.print(f"\n  [success]✓ {name} setup complete[/success] ({cmd_count} commands, {rule_count} rules)")
+    else:
+        console.print(f"\n  [warning]⚠ {name} setup completed with warnings[/warning]")
 
     return success
 
