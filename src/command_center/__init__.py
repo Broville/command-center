@@ -41,10 +41,12 @@ app = typer.Typer(
 
 # Global locations
 OPENCODE_COMMANDS = Path.home() / ".config" / "opencode" / "command"
+OPENCODE_RULES = Path.home() / ".config" / "opencode" / "rules"
 OPENCODE_SUPPORT = Path.home() / ".config" / "opencode" / ".do-the-thing"
+OPENCODE_AGENTS_MD = Path.home() / ".config" / "opencode" / "AGENTS.md"
 ANTIGRAVITY_COMMANDS = Path.home() / ".gemini" / "antigravity" / "global_workflows"
+ANTIGRAVITY_RULES = Path.home() / ".gemini" / "rules"  # Per infra-setup: ~/.gemini/rules/
 ANTIGRAVITY_SUPPORT = Path.home() / ".gemini" / "antigravity" / ".do-the-thing"
-ANTIGRAVITY_SUB_RULES = Path.home() / ".gemini" / "SUB_RULES"
 
 # Source files (relative to package assets directory)
 # Commands are workflow files invoked via /command
@@ -123,6 +125,7 @@ def copy_directory(src: Path, dest: Path, dry_run: bool = False) -> bool:
 def bootstrap_to_target(
     name: str,
     commands_dir: Path,
+    rules_dir: Path,
     support_dir: Path,
     assets_dir: Path,
     dry_run: bool = False,
@@ -134,6 +137,7 @@ def bootstrap_to_target(
 
     console.print(f"\n[bold cyan]Setting up {name}[/bold cyan]")
     console.print(f"  [dim]Commands: {commands_dir}[/dim]")
+    console.print(f"  [dim]Rules: {rules_dir}[/dim]")
 
     # Copy command files (from assets/commands/)
     console.print("\n  [bold]Commands:[/bold]")
@@ -149,13 +153,13 @@ def bootstrap_to_target(
             console.print(f"  [warning]![/warning] Asset missing: commands/{filename}")
             success = False
 
-    # Copy rule files (from assets/rules/) to commands directory
+    # Copy rule files (from assets/rules/) to RULES directory (NOT commands)
     console.print("\n  [bold]Rules:[/bold]")
     rules_src = assets_dir / "rules"
     for filename in RULE_FILES:
         src = rules_src / filename
         if src.exists():
-            if copy_file(src, commands_dir / filename, dry_run):
+            if copy_file(src, rules_dir / filename, dry_run):
                 rule_count += 1
             else:
                 success = False
@@ -171,27 +175,11 @@ def bootstrap_to_target(
     else:
         console.print(f"  [warning]![/warning] Support dir missing: {SUPPORT_DIR}")
 
-    # Special handling for Antigravity SUB_RULES hierarchy
+    # IDE-specific extras
     if name == "Antigravity":
         console.print("\n  [bold]Antigravity Extras:[/bold]")
-        console.print(f"  [dim]SUB_RULES: {ANTIGRAVITY_SUB_RULES}[/dim]")
         
-        # Deploy Sub-Rules to ~/.gemini/SUB_RULES/ with HOMELAB_ prefix where needed
-        sub_rules_map = {
-            "HOMELAB_foundational_rules.md": "HOMELAB_foundational_rules.md",
-            "HOMELAB_network.md": "HOMELAB_network.md",
-            "HOMELAB_cluster.md": "HOMELAB_cluster.md",
-            "HOMELAB_access.md": "HOMELAB_access.md",
-            "homelab-reference.md": "HOMELAB_reference.md",
-        }
-        
-        for src_name, dest_name in sub_rules_map.items():
-            src_file = rules_src / src_name
-            if src_file.exists():
-                 if not copy_file(src_file, ANTIGRAVITY_SUB_RULES / dest_name, dry_run):
-                     success = False
-
-        # Update GEMINI.md Master Rule with links to modular sub-rules
+        # Update GEMINI.md Master Rule with links to rules
         gemini_master = Path.home() / ".gemini" / "GEMINI.md"
         gemini_content = """# Antigravity Global Rules & Reference (GEMINI)
 
@@ -213,12 +201,12 @@ Identify the current project context and apply the corresponding rules.
 > - **Zero Tolerance** for issues.
 > - **No Pause** until complete.
 
-**Sub-Rules** (located in `~/.gemini/SUB_RULES/`):
-- [Foundational Rules](file:///home/brimdor/.gemini/SUB_RULES/HOMELAB_foundational_rules.md) - ABSOLUTE rules (1-7)
-- [Network Reference](file:///home/brimdor/.gemini/SUB_RULES/HOMELAB_network.md) - VLANs, devices
-- [Cluster Reference](file:///home/brimdor/.gemini/SUB_RULES/HOMELAB_cluster.md) - Nodes, services, storage
-- [Access Reference](file:///home/brimdor/.gemini/SUB_RULES/HOMELAB_access.md) - SSH, kubectl, external access
-- [Master Reference](file:///home/brimdor/.gemini/SUB_RULES/HOMELAB_reference.md) - Table of Contents
+**Rules** (located in `~/.gemini/rules/`):
+- [Foundational Rules](file:///home/brimdor/.gemini/rules/HOMELAB_foundational_rules.md) - ABSOLUTE rules (1-7)
+- [Network Reference](file:///home/brimdor/.gemini/rules/HOMELAB_network.md) - VLANs, devices
+- [Cluster Reference](file:///home/brimdor/.gemini/rules/HOMELAB_cluster.md) - Nodes, services, storage
+- [Access Reference](file:///home/brimdor/.gemini/rules/HOMELAB_access.md) - SSH, kubectl, external access
+- [Master Reference](file:///home/brimdor/.gemini/rules/homelab-reference.md) - Table of Contents
 
 **Workflows**:
 - `/homelab-recon` - Health check & maintenance report
@@ -264,6 +252,44 @@ curl -H "Authorization: token $GITEA_TOKEN" "$GITEA_URL/api/v1/..."
                 success = False
         else:
              console.print(f"  [cyan]~[/cyan] Would update GEMINI.md at {gemini_master}")
+
+    elif name == "Opencode":
+        console.print("\n  [bold]Opencode Extras:[/bold]")
+        
+        # Create AGENTS.md for auto-loading rules
+        agents_content = """# OpenCode Global Agent Instructions
+
+This file is auto-loaded by OpenCode to provide system-wide context.
+
+## Homelab Infrastructure Rules
+
+When working on homelab-related tasks, follow the rules in `~/.config/opencode/rules/`:
+
+- **Foundational Rules**: `HOMELAB_foundational_rules.md` - ABSOLUTE rules (1-7)
+- **Network Reference**: `HOMELAB_network.md` - VLANs, devices
+- **Cluster Reference**: `HOMELAB_cluster.md` - Nodes, services, storage
+- **Access Reference**: `HOMELAB_access.md` - SSH, kubectl, external access
+
+> **CRITICAL**: ALL GREEN status required across Metal, System, Platform, and Apps layers.
+
+## Available Commands
+
+- `/homelab-recon` - Health check & maintenance report
+- `/homelab-action` - Execute maintenance items
+- `/homelab-troubleshoot` - Diagnose issues
+- `/do-the-thing` - Spec-Driven Development workflow
+- `/commit` - Comprehensive commit workflow
+"""
+        if not dry_run:
+            try:
+                OPENCODE_AGENTS_MD.parent.mkdir(parents=True, exist_ok=True)
+                OPENCODE_AGENTS_MD.write_text(agents_content)
+                console.print(f"  [success]✓[/success] AGENTS.md (auto-loaded rules)")
+            except Exception as e:
+                console.print(f"  [error]✗[/error] Failed to create AGENTS.md: {e}")
+                success = False
+        else:
+             console.print(f"  [cyan]~[/cyan] Would create AGENTS.md at {OPENCODE_AGENTS_MD}")
 
     # Summary
     total = cmd_count + rule_count
@@ -355,7 +381,7 @@ def run_wizard(dry_run: bool):
         
         if "opencode" in targets:
             task = progress.add_task("Bootstrapping Opencode...", total=None)
-            if not bootstrap_to_target("Opencode", OPENCODE_COMMANDS, OPENCODE_SUPPORT, assets_dir, dry_run):
+            if not bootstrap_to_target("Opencode", OPENCODE_COMMANDS, OPENCODE_RULES, OPENCODE_SUPPORT, assets_dir, dry_run):
                 success_all = False
             time.sleep(0.5) # UX pacing
             progress.remove_task(task)
@@ -363,7 +389,7 @@ def run_wizard(dry_run: bool):
 
         if "antigravity" in targets:
             task = progress.add_task("Bootstrapping Antigravity...", total=None)
-            if not bootstrap_to_target("Antigravity", ANTIGRAVITY_COMMANDS, ANTIGRAVITY_SUPPORT, assets_dir, dry_run):
+            if not bootstrap_to_target("Antigravity", ANTIGRAVITY_COMMANDS, ANTIGRAVITY_RULES, ANTIGRAVITY_SUPPORT, assets_dir, dry_run):
                 success_all = False
             time.sleep(0.5) # UX pacing
             progress.remove_task(task)
@@ -439,10 +465,10 @@ def init(
         raise typer.Exit(1)
 
     if target_opencode:
-        bootstrap_to_target("Opencode", OPENCODE_COMMANDS, OPENCODE_SUPPORT, assets_dir, dry_run)
+        bootstrap_to_target("Opencode", OPENCODE_COMMANDS, OPENCODE_RULES, OPENCODE_SUPPORT, assets_dir, dry_run)
 
     if target_antigravity:
-        bootstrap_to_target("Antigravity", ANTIGRAVITY_COMMANDS, ANTIGRAVITY_SUPPORT, assets_dir, dry_run)
+        bootstrap_to_target("Antigravity", ANTIGRAVITY_COMMANDS, ANTIGRAVITY_RULES, ANTIGRAVITY_SUPPORT, assets_dir, dry_run)
     
     console.print("[success]Done.[/success]")
 
