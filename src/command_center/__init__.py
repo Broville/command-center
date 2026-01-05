@@ -272,7 +272,7 @@ def run_wizard(dry_run: bool):
     console.print("[italic]Welcome! Let's get your AI coding assistants supercharged.[/italic]\n")
 
     assets_dir = get_assets_dir()
-    if not (assets_dir / "do-the-thing.md").exists():
+    if not (assets_dir / "commands" / "do-the-thing.md").exists():
         console.print(f"[error]CRITICAL:[/error] Asset files not found in {assets_dir}")
         raise typer.Exit(1)
 
@@ -395,7 +395,7 @@ def init(
     console.print("[bold]Running in Headless Mode[/bold]")
     assets_dir = get_assets_dir()
     
-    if not (assets_dir / "do-the-thing.md").exists():
+    if not (assets_dir / "commands" / "do-the-thing.md").exists():
         console.print(f"[error]Error:[/error] Asset files not found in {assets_dir}")
         raise typer.Exit(1)
 
@@ -437,7 +437,7 @@ def check():
 
     # Check Opencode
     console.print("[cyan]Opencode:[/cyan]")
-    for filename in WORKFLOW_FILES:
+    for filename in COMMAND_FILES + RULE_FILES:
         path = OPENCODE_COMMANDS / filename
         if path.exists():
             console.print(f"  [success]✓[/success] {path}")
@@ -452,7 +452,7 @@ def check():
 
     # Check Antigravity
     console.print("\n[cyan]Antigravity:[/cyan]")
-    for filename in WORKFLOW_FILES:
+    for filename in COMMAND_FILES + RULE_FILES:
         path = ANTIGRAVITY_COMMANDS / filename
         if path.exists():
             console.print(f"  [success]✓[/success] {path}")
