@@ -36,11 +36,25 @@ GENRELEASES_DIR=".genreleases"
 mkdir -p "$GENRELEASES_DIR"
 rm -rf "$GENRELEASES_DIR"/* || true
 
+# Assets base directory (new location)
+ASSETS_BASE="src/command_center/assets"
+
 # Command files to include
-COMMAND_FILES=("do-the-thing.md" "commit.md" "init.md")
+COMMAND_FILES=(
+  "$ASSETS_BASE/commands/do-the-thing.md"
+  "$ASSETS_BASE/commands/commit.md"
+  "$ASSETS_BASE/commands/init.md"
+  "$ASSETS_BASE/commands/create_mcp.md"
+  "$ASSETS_BASE/commands/homelab-action.md"
+  "$ASSETS_BASE/commands/homelab-recon.md"
+  "$ASSETS_BASE/commands/homelab-troubleshoot.md"
+)
 
 # Support directory
-SUPPORT_DIR=".do-the-thing"
+SUPPORT_DIR="$ASSETS_BASE/.do-the-thing"
+
+# Rules directory
+RULES_DIR="$ASSETS_BASE/rules"
 
 # ==============================================================================
 # Build Functions
@@ -84,24 +98,33 @@ build_opencode_package() {
   echo "Building Opencode package..."
   
   mkdir -p "$base_dir/.opencode/command"
+  mkdir -p "$base_dir/.opencode/rules"
   mkdir -p "$base_dir/.do-the-thing"
   
   # Copy command files
   for cmd in "${COMMAND_FILES[@]}"; do
     if [[ -f "$cmd" ]]; then
       cp "$cmd" "$base_dir/.opencode/command/"
-      echo "  Copied $cmd -> .opencode/command/"
+      echo "  Copied $(basename "$cmd") -> .opencode/command/"
     else
-      echo "  Warning: $cmd not found" >&2
+      echo "  Warning: $(basename "$cmd") not found" >&2
     fi
   done
+  
+  # Copy rules files
+  if [[ -d "$RULES_DIR" ]]; then
+    cp -r "$RULES_DIR"/* "$base_dir/.opencode/rules/"
+    echo "  Copied rules/* -> .opencode/rules/"
+  else
+    echo "  Warning: $RULES_DIR not found" >&2
+  fi
   
   # Copy support files (including hidden directories like .specify/)
   if [[ -d "$SUPPORT_DIR" ]]; then
     cp -r "$SUPPORT_DIR"/. "$base_dir/.do-the-thing/"
-    echo "  Copied $SUPPORT_DIR/* -> .do-the-thing/"
+    echo "  Copied .do-the-thing/* -> .do-the-thing/"
   else
-    echo "  Warning: $SUPPORT_DIR not found" >&2
+    echo "  Warning: .do-the-thing not found" >&2
   fi
   
   # Create ZIP
@@ -115,24 +138,33 @@ build_antigravity_package() {
   echo "Building Antigravity package..."
   
   mkdir -p "$base_dir/global_workflows"
+  mkdir -p "$base_dir/rules"
   mkdir -p "$base_dir/.do-the-thing"
   
   # Copy command files
   for cmd in "${COMMAND_FILES[@]}"; do
     if [[ -f "$cmd" ]]; then
       cp "$cmd" "$base_dir/global_workflows/"
-      echo "  Copied $cmd -> global_workflows/"
+      echo "  Copied $(basename "$cmd") -> global_workflows/"
     else
-      echo "  Warning: $cmd not found" >&2
+      echo "  Warning: $(basename "$cmd") not found" >&2
     fi
   done
+  
+  # Copy rules files
+  if [[ -d "$RULES_DIR" ]]; then
+    cp -r "$RULES_DIR"/* "$base_dir/rules/"
+    echo "  Copied rules/* -> rules/"
+  else
+    echo "  Warning: $RULES_DIR not found" >&2
+  fi
   
   # Copy support files (including hidden directories like .specify/)
   if [[ -d "$SUPPORT_DIR" ]]; then
     cp -r "$SUPPORT_DIR"/. "$base_dir/.do-the-thing/"
-    echo "  Copied $SUPPORT_DIR/* -> .do-the-thing/"
+    echo "  Copied .do-the-thing/* -> .do-the-thing/"
   else
-    echo "  Warning: $SUPPORT_DIR not found" >&2
+    echo "  Warning: .do-the-thing not found" >&2
   fi
   
   # Create ZIP
@@ -146,6 +178,7 @@ build_gemini_cli_package() {
   echo "Building Gemini-CLI package..."
   
   mkdir -p "$base_dir/.gemini/commands"
+  mkdir -p "$base_dir/.gemini/rules"
   mkdir -p "$base_dir/.gemini/.do-the-thing"
   
   # Convert command files to TOML
@@ -154,16 +187,24 @@ build_gemini_cli_package() {
       local base_name=$(basename "$cmd" .md)
       convert_md_to_toml "$cmd" "$base_dir/.gemini/commands/${base_name}.toml"
     else
-      echo "  Warning: $cmd not found" >&2
+      echo "  Warning: $(basename "$cmd") not found" >&2
     fi
   done
+  
+  # Copy rules files
+  if [[ -d "$RULES_DIR" ]]; then
+    cp -r "$RULES_DIR"/* "$base_dir/.gemini/rules/"
+    echo "  Copied rules/* -> .gemini/rules/"
+  else
+    echo "  Warning: $RULES_DIR not found" >&2
+  fi
   
   # Copy support files
   if [[ -d "$SUPPORT_DIR" ]]; then
     cp -r "$SUPPORT_DIR"/. "$base_dir/.gemini/.do-the-thing/"
-    echo "  Copied $SUPPORT_DIR/* -> .gemini/.do-the-thing/"
+    echo "  Copied .do-the-thing/* -> .gemini/.do-the-thing/"
   else
-    echo "  Warning: $SUPPORT_DIR not found" >&2
+    echo "  Warning: .do-the-thing not found" >&2
   fi
   
   # Create ZIP

@@ -4,10 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - '.do-the-thing/**'
-      - 'do-the-thing.md'
-      - 'commit.md'
-      - 'init.md'
+      - 'src/command_center/assets/**'
       - 'scripts/**'
       - '.github/workflows/**'
   workflow_dispatch:
