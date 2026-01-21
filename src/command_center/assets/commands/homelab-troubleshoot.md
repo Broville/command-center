@@ -26,7 +26,8 @@ The text the user typed after the command **is** their priority input - it may s
 # Homelab Troubleshooting Workflow
 
 ## Overview
-This workflow guides troubleshooting of issues across the Homelab Kubernetes infrastructure.
+
+This workflow GUIDES you through troubleshooting issues across the Homelab Kubernetes infrastructure. EXECUTE all steps until ALL layers are GREEN.
 
 > [!IMPORTANT]
 > **Sync Requirement**: This workflow exists in multiple locations that must stay synchronized:
@@ -34,7 +35,7 @@ This workflow guides troubleshooting of issues across the Homelab Kubernetes inf
 > - `.opencode/command/homelab-troubleshoot.md`
 > - `.gemini/commands/homelab-troubleshoot.toml`
 > 
-> When updating this file, **always copy changes to all locations**.
+> When updating this file, **COPY changes to all locations**.
 
 > [!CAUTION]
 > **Acceptance Criteria**: Troubleshooting is NOT complete until **ALL layers are GREEN** with **ZERO issues**:
@@ -53,38 +54,46 @@ This workflow guides troubleshooting of issues across the Homelab Kubernetes inf
 > **Partial success is NOT acceptable.** A single warning (e.g., Ceph `HEALTH_WARN`), a single unhealthy app, or even a low-priority issue means troubleshooting must continue until fully resolved.
 
 ## References
+
 - **Documentation**: https://homelab.eaglepass.io
 - **Primary Repo**: https://git.eaglepass.io/ops/homelab
 - **Fallback Repo**: https://github.com/brimdor/homelab (auto-synced from primary)
 
 ## Prerequisites
 
-### 1. Ensure Local Tools Are Up-to-Date
-Before starting, verify all local tools are current and functional.
+### 1. VERIFY Local Tools Are Up-to-Date
 
-### 2. Access Priority
-- **Primary**: Use the local system for all work
-- **Controller Fallback**: Only use when local access to Kubernetes cluster is unavailable
-  - SSH: `ssh brimdor@10.0.20.10`
-  - Homelab files: `~/homelab`
+BEFORE STARTING, VERIFY all local tools are current and functional.
 
-### 3. Controller Access (Fallback Only)
-If local access is unavailable:
+### 2. ESTABLISH Access Priority
+
+EXECUTE access in this priority order:
+
+1. **PRIMARY**: USE the local system for all work
+2. **FALLBACK**: USE controller only when local access to Kubernetes cluster is unavailable
+   - SSH: `ssh brimdor@10.0.20.10`
+   - Homelab files: `~/homelab`
+
+### 3. EXECUTE Controller Access (Fallback Only)
+
+IF local access is unavailable, EXECUTE these commands:
+
 ```bash
-# Connect to controller
+# CONNECT to controller
 ssh brimdor@10.0.20.10
 
-# Navigate to homelab directory
+# NAVIGATE to homelab directory
 cd ~/homelab
 
-# Get latest code (run every time you connect for the day)
+# GET latest code (RUN every time you connect for the day)
 git pull
 
-# Start the tools container
+# START the tools container
 make tools
 ```
 
 ## Cluster Architecture
+
 - **Kubernetes Distribution**: K3s
 - **GitOps**: ArgoCD (manages application deployments)
 - **CNI**: Cilium (network connectivity and policies)
@@ -96,19 +105,21 @@ make tools
 - **External Secrets**: Manages secrets from external sources
 
 ## Cluster Organization
+
 The homelab is organized into several key directories:
 
 ### 1. system/ - Core Cluster Infrastructure
 - `argocd/` - GitOps controller
 - `cert-manager/` - Certificate management
 - `cloudflared/` - Cloudflare tunnel
+- `connect/` - Tailscale/connectivity services
 - `external-dns/` - DNS management
-- `ingress-nginx/` - Ingress controller
-- `monitoring-system/` - Prometheus/Grafana
-- `rook-ceph/` - Storage provider
 - `gpu-operator/` - GPU support
+- `ingress-nginx/` - Ingress controller
 - `kured/` - Node reboot manager
 - `loki/` - Log aggregation
+- `monitoring-system/` - Prometheus/Grafana
+- `rook-ceph/` - Storage provider
 - `volsync-system/` - Volume synchronization
 
 ### 2. platform/ - Platform Services
@@ -123,39 +134,48 @@ The homelab is organized into several key directories:
 - `zot/` - Container registry
 
 ### 3. apps/ - User Applications
-- `emby/` - Media server
-- `radarr/` - Movie management
-- `sonarr/` - TV show management
-- `sabnzbd/` - Download client
+
+> [!NOTE]
+> The apps directory is **dynamic** - applications are added and removed frequently.
+> To discover current applications, EXECUTE: `ls ~/Documents/GitHub/homelab/apps/`
+
+Applications include media services, AI/ML workloads, productivity tools, databases, and more.
+Each app has its own directory containing Kubernetes manifests managed by ArgoCD.
 
 ### 4. metal/ - Bare Metal Provisioning
-- Ansible playbooks for cluster setup
-- Node configuration
-- K3s installation
+- Ansible playbooks for cluster setup (`cluster.yml`, `nodes.yml`, `boot.yml`)
+- Node configuration (`group_vars/`, `inventories/`)
+- K3s installation and management
+- Roles for provisioning (`roles/`)
 
 ### 5. external/ - External Resources (Terraform)
 - Cloudflare configuration
 - External service setup
+- Terraform modules (`modules/`)
+- Namespace management (`namespaces.yml`)
 
 ## Available Helper Scripts
+
 Located in `scripts/` directory:
+
 | Script | Description |
 |--------|-------------|
-| `get-status` | Get overall cluster status |
-| `argocd-admin-password` | Retrieve ArgoCD admin password |
-| `get-dns-config` | Check DNS configuration |
-| `get-wireguard-config` | Get VPN config |
-| `kanidm-reset-password` | Reset identity management passwords |
-| `helm-diff` | Compare Helm chart changes |
-| `error_check` | Check for common errors |
-| `configure` | Configure cluster components |
-| `new-service` | Scaffold new service |
-| `onboard-user` | Add new user |
-| `spin_up` / `spin_down` | Manage cluster power state |
-| `pxe-logs` | Check PXE boot logs |
-| `take-screenshots` | Capture service screenshots |
+| `get-status` | GET overall cluster status |
+| `argocd-admin-password` | RETRIEVE ArgoCD admin password |
+| `get-dns-config` | CHECK DNS configuration |
+| `get-wireguard-config` | GET VPN config |
+| `kanidm-reset-password` | RESET identity management passwords |
+| `helm-diff` | COMPARE Helm chart changes |
+| `error_check` | CHECK for common errors |
+| `configure` | CONFIGURE cluster components |
+| `new-service` | SCAFFOLD new service |
+| `onboard-user` | ADD new user |
+| `spin_up` / `spin_down` | MANAGE cluster power state |
+| `pxe-logs` | CHECK PXE boot logs |
+| `take-screenshots` | CAPTURE service screenshots |
 
 ## Compatible Tools
+
 | Tool | Purpose |
 |------|---------|
 | `kubectl` | Kubernetes CLI (required) |
@@ -169,6 +189,7 @@ Located in `scripts/` directory:
 | `ansible` | Configuration management (for bare metal) |
 
 ## Key Namespaces
+
 | Namespace | Purpose |
 |-----------|---------|
 | `argocd` | GitOps controller |
@@ -180,152 +201,184 @@ Located in `scripts/` directory:
 | `gitea` | Git hosting |
 | `platform-*` | Platform services |
 
+---
+
 ## Troubleshooting Steps
 
-### Step 1: Pre-flight Checklist
-Before diving deep, verify these basics:
+### Step 1: EXECUTE Pre-flight Checklist
+
+BEFORE diving deep, EXECUTE these commands to verify basics:
+
 ```bash
-# 1. Cluster is reachable
+# 1. VERIFY cluster is reachable
 kubectl cluster-info
 
-# 2. Nodes are healthy
+# 2. CHECK nodes are healthy
 kubectl get nodes
 
-# 3. Core system pods are running
+# 3. VERIFY core system pods are running
 kubectl get pods -n kube-system
 
-# 4. ArgoCD is operational
+# 4. CHECK ArgoCD is operational
 kubectl get pods -n argocd
 
-# 5. Storage is healthy
+# 5. VERIFY storage is healthy
 kubectl get cephcluster -n rook-ceph
 
-# 6. Network is functional (if available)
+# 6. CHECK network is functional (if available)
 cilium status
 
-# 7. Check for critical events
+# 7. CHECK for critical events
 kubectl get events -A | grep -i error
 ```
 
-### Step 2: Identify the Issue Category
+**ALL checks MUST pass before proceeding to Step 2.**
+
+### Step 2: IDENTIFY the Issue Category
+
+DETERMINE the category of issue and EXECUTE the appropriate diagnostic commands:
 
 #### Application Issues
+
+EXECUTE these commands to diagnose application issues:
+
 ```bash
-# Check ArgoCD application status
+# CHECK ArgoCD application status
 kubectl get applications -n argocd
 
-# Check pod status
+# CHECK pod status
 kubectl get pods -n <namespace>
 
-# View pod logs
+# VIEW pod logs
 kubectl logs -n <namespace> <pod-name>
 
-# Check events
+# CHECK events
 kubectl get events -n <namespace> --sort-by='.lastTimestamp'
 
-# Verify ingress
+# VERIFY ingress
 kubectl get ingress -n <namespace>
 
-# Check secrets
+# CHECK secrets
 kubectl get secrets -n <namespace>
 ```
 
 #### Network Issues
+
+EXECUTE these commands to diagnose network issues:
+
 ```bash
-# Check Cilium status
+# CHECK Cilium status
 cilium status
 
-# Test connectivity
+# TEST connectivity
 cilium connectivity test
 
-# Check network policies
+# CHECK network policies
 kubectl get networkpolicies -A
 
-# Verify DNS
+# VERIFY DNS
 kubectl run -it --rm debug --image=busybox --restart=Never -- nslookup kubernetes.default
 
-# Check ingress controller
+# CHECK ingress controller
 kubectl get pods -n ingress-nginx
 ```
 
 #### Storage Issues
+
+EXECUTE these commands to diagnose storage issues:
+
 ```bash
-# Check Ceph cluster health
+# CHECK Ceph cluster health
 kubectl get cephcluster -n rook-ceph
 
-# View PVC status
+# VIEW PVC status
 kubectl get pvc -A
 
-# Check storage classes
+# CHECK storage classes
 kubectl get storageclass
 ```
 
 #### GitOps Issues
+
+EXECUTE these commands to diagnose GitOps issues:
+
 ```bash
-# Check ArgoCD sync status
+# CHECK ArgoCD sync status
 argocd app list
 
-# Force sync
+# FORCE sync
 argocd app sync <app-name>
 
-# View sync logs
+# VIEW sync logs
 argocd app logs <app-name>
 
-# Check ArgoCD health
+# CHECK ArgoCD health
 kubectl get pods -n argocd
 ```
 
 #### Certificate Issues
+
+EXECUTE these commands to diagnose certificate issues:
+
 ```bash
-# Check cert-manager
+# CHECK cert-manager
 kubectl get certificates -A
 
-# View certificate requests
+# VIEW certificate requests
 kubectl get certificaterequests -A
 
-# Check issuers
+# CHECK issuers
 kubectl get clusterissuers
 
-# Review cert-manager logs
+# REVIEW cert-manager logs
 kubectl logs -n cert-manager deploy/cert-manager
 ```
 
 #### Monitoring & Logging
+
+EXECUTE these commands to access monitoring:
+
 ```bash
-# Query Prometheus
+# QUERY Prometheus
 kubectl port-forward -n monitoring-system svc/prometheus 9090:9090
 
-# Check monitoring pods
+# CHECK monitoring pods
 kubectl get pods -n monitoring-system
 ```
 
-### Step 3: Gather Debug Information
-When troubleshooting, collect:
-- Pod status and descriptions
-- Container logs (current and previous if crashed)
-- Events in relevant namespaces
-- Resource usage (CPU/Memory)
-- Network connectivity tests
-- Storage health and PVC bindings
-- Ingress and service configurations
-- Certificate status
-- ArgoCD application sync status
-- Recent changes from git history
+### Step 3: GATHER Debug Information
 
-### Step 4: Resolve and Document
-1. Apply the fix
-2. Verify the solution
-3. Document findings if significant
-4. Consider creating an issue for recurring problems at https://git.eaglepass.io/ops/homelab/issues
+When troubleshooting, COLLECT the following evidence:
 
-### Step 5: Validate ALL Layers Are GREEN
+- **CAPTURE** pod status and descriptions
+- **RETRIEVE** container logs (current and previous if crashed)
+- **EXAMINE** events in relevant namespaces
+- **CHECK** resource usage (CPU/Memory)
+- **TEST** network connectivity
+- **VERIFY** storage health and PVC bindings
+- **INSPECT** ingress and service configurations
+- **CONFIRM** certificate status
+- **REVIEW** ArgoCD application sync status
+- **EXAMINE** recent changes from git history
+
+### Step 4: RESOLVE and DOCUMENT
+
+EXECUTE these steps in order:
+
+1. **APPLY** the fix
+2. **VERIFY** the solution works
+3. **DOCUMENT** findings if significant
+4. **CREATE** an issue for recurring problems at https://git.eaglepass.io/ops/homelab/issues
+
+### Step 5: VALIDATE ALL Layers Are GREEN
 
 > [!CAUTION]
 > **Do NOT consider troubleshooting complete until ALL checks pass.**
 
-Run the following validation checks and ensure **every single one** returns GREEN status:
+EXECUTE the following validation checks and ENSURE **every single one** returns GREEN status:
 
-#### Metal Layer Validation
+#### EXECUTE Metal Layer Validation
+
 ```bash
 # All nodes must be Ready (no NotReady, no SchedulingDisabled)
 kubectl get nodes
@@ -336,7 +389,8 @@ kubectl describe nodes | grep -E "Pressure|Taint"
 # Expected: No MemoryPressure, DiskPressure, or PIDPressure
 ```
 
-#### System Layer Validation
+#### EXECUTE System Layer Validation
+
 ```bash
 # Ceph must be HEALTH_OK (not HEALTH_WARN, not HEALTH_ERR)
 kubectl -n rook-ceph exec -it deploy/rook-ceph-tools -- ceph health
@@ -351,7 +405,8 @@ kubectl get pods -n kube-system | grep -v "Running\|Completed"
 # Expected: No output (all pods Running or Completed)
 ```
 
-#### Platform Layer Validation
+#### EXECUTE Platform Layer Validation
+
 ```bash
 # ALL ArgoCD applications must be Synced AND Healthy
 kubectl get applications -n argocd | grep -v "Synced.*Healthy"
@@ -362,7 +417,8 @@ kubectl get applications -n argocd -o json | jq -r '.items[] | select(.status.sy
 # Expected: No output
 ```
 
-#### Apps Layer Validation
+#### EXECUTE Apps Layer Validation
+
 ```bash
 # No pods in error states across all namespaces
 kubectl get pods -A | grep -E "Error|CrashLoopBackOff|ImagePullBackOff|Pending|Failed"
@@ -387,55 +443,78 @@ kubectl get events -A --field-selector type=Warning --sort-by='.lastTimestamp' |
 > **Zero Issue Tolerance**: ALL issues must be resolved regardless of severity:
 > | Severity | Action Required |
 > |----------|-----------------|
-> | CRITICAL | Resolve immediately |
-> | HIGH | Resolve before completion |
-> | MEDIUM | Resolve before completion |
-> | LOW | Resolve before completion |
+> | CRITICAL | RESOLVE immediately |
+> | HIGH | RESOLVE before completion |
+> | MEDIUM | RESOLVE before completion |
+> | LOW | RESOLVE before completion |
 >
 > There is no "acceptable" level of issues. Even LOW priority items block successful completion.
 
-**If ANY check fails or ANY issue remains (from LOW to CRITICAL), troubleshooting MUST continue.** Do not close issues or report success until all layers are GREEN and all issues are resolved.
+**IF ANY check fails or ANY issue remains (from LOW to CRITICAL), troubleshooting MUST continue.** Do NOT close issues or report success until all layers are GREEN and all issues are resolved.
+
+---
+
+## Execution Checklist
+
+COMPLETE all items before considering troubleshooting finished:
+
+- [ ] COMPLETE Step 1: EXECUTE pre-flight checklist, ALL checks pass
+- [ ] COMPLETE Step 2: IDENTIFY issue category, EXECUTE diagnostic commands
+- [ ] COMPLETE Step 3: GATHER debug information, COLLECT all evidence
+- [ ] COMPLETE Step 4: APPLY fix, VERIFY solution, DOCUMENT findings
+- [ ] COMPLETE Step 5: VALIDATE all layers are GREEN
+- [ ] CONFIRM Metal Layer: All nodes `Ready`, no resource pressure
+- [ ] CONFIRM System Layer: Ceph `HEALTH_OK`, all kube-system pods `Running`
+- [ ] CONFIRM Platform Layer: All ArgoCD apps `Synced` AND `Healthy`
+- [ ] CONFIRM Apps Layer: All pods `Running`, no error states
+- [ ] CONFIRM Overall Status: **GREEN**
+
+---
 
 ## MCP Tool Integration (Primary Method)
-Use the available **Gitea** and **GitHub** MCP tools for all repository interactions. These are safer, more robust, and preferred over direct API calls.
+
+USE the available **Gitea** and **GitHub** MCP tools for all repository interactions. These are safer, more robust, and preferred over direct API calls.
 
 ### Priority Order
-1. **Gitea MCP**: Use for all operations on the primary repository (`ops/homelab`).
-2. **GitHub MCP**: Use as a fallback for GitHub-hosted mirrors or if Gitea MCP is unavailable.
-3. **API Fallback**: Use raw `curl` commands (detailed below) **ONLY** if MCP tools are non-functional.
+
+1. **Gitea MCP**: USE for all operations on the primary repository (`ops/homelab`)
+2. **GitHub MCP**: USE as a fallback for GitHub-hosted mirrors or if Gitea MCP is unavailable
+3. **API Fallback**: USE raw `curl` commands (detailed below) **ONLY** if MCP tools are non-functional
 
 ### Common MCP Operations
-- **List Issues**: Use `list_issues` (Gitea) or `mcp_list_issues` (GitHub).
-- **Create Issue**: Use `create_issue` (Gitea) or `mcp_create_issue` (GitHub).
-- **Add Comment**: Use `add_issue_comment` (Gitea/GitHub).
-- **List PRs**: Use `list_pull_requests` (Gitea) or `mcp_list_pull_requests` (GitHub).
-- **Get Repo Info**: Use `get_repository` (Gitea) or `mcp_search_repositories` (GitHub).
+
+- **List Issues**: USE `list_issues` (Gitea) or `mcp_list_issues` (GitHub)
+- **Create Issue**: USE `create_issue` (Gitea) or `mcp_create_issue` (GitHub)
+- **Add Comment**: USE `add_issue_comment` (Gitea/GitHub)
+- **List PRs**: USE `list_pull_requests` (Gitea) or `mcp_list_pull_requests` (GitHub)
+- **Get Repo Info**: USE `get_repository` (Gitea) or `mcp_search_repositories` (GitHub)
 
 ---
 
 ## 1Password Secret Management
 
-Use the 1Password CLI (`op`) to manage application secrets directly from the terminal.
+USE the 1Password CLI (`op`) to manage application secrets directly from the terminal.
 
 ### Vault Information
 - **Vault Name**: `Server`
 - **Item Naming Convention**: `<app-name> Secrets`
 - **Category**: `Database`
 
-### Check Existing Secrets
+### EXECUTE Check Existing Secrets
 ```bash
-# Check if secrets exist for an app
+# CHECK if secrets exist for an app
 op item get --vault "Server" "<app-name> Secrets"
 ```
 
-### Create or Update Secrets
-Use this command block to create or update secrets for an application. Replace `<app-name>` and define the secret variables before running.
+### EXECUTE Create or Update Secrets
+
+USE this command block to create or update secrets for an application. REPLACE `<app-name>` and DEFINE the secret variables before running.
 
 ```bash
-# Configure the secret details
+# CONFIGURE the secret details
 app_name="<app-name>"
 
-# Build the payload (edit labels and values as needed)
+# BUILD the payload (EDIT labels and values as needed)
 payload=$(cat <<JSON
 {
   "title": "${app_name} Secrets",
@@ -448,7 +527,7 @@ payload=$(cat <<JSON
 JSON
 )
 
-# Create or Update in 'Server' vault
+# CREATE or UPDATE in 'Server' vault
 if op item get --vault "Server" "${app_name} Secrets" >/dev/null 2>&1; then
   echo "$payload" | op item edit --vault "Server" "${app_name} Secrets" -
 else
@@ -456,12 +535,14 @@ else
 fi
 ```
 
+---
+
 ## Gitea API Fallback (Emergency Only)
 
 > [!WARNING]
-> Only use the following API commands if the MCP tools above are failing or unavailable.
+> USE the following API commands ONLY if the MCP tools above are failing or unavailable.
 
-For automated repo, issue, and PR operations without MCP, use the Gitea API with the stored token.
+For automated repo, issue, and PR operations without MCP, USE the Gitea API with the stored token.
 
 ### Token Location
 ```bash
@@ -469,10 +550,10 @@ For automated repo, issue, and PR operations without MCP, use the Gitea API with
 ~/.config/gitea/.env        # For bash/zsh
 ~/.config/gitea/gitea.fish  # For fish shell
 
-# Load token in fish shell:
+# LOAD token in fish shell:
 source ~/.config/gitea/gitea.fish
 
-# Load token in bash/zsh:
+# LOAD token in bash/zsh:
 source ~/.config/gitea/.env
 
 # Environment variables available after sourcing:
@@ -487,13 +568,13 @@ https://git.eaglepass.io/api/v1
 
 ### Common API Operations
 
-#### List Issues
+#### EXECUTE List Issues
 ```bash
 curl -s "https://git.eaglepass.io/api/v1/repos/ops/homelab/issues" \
   -H "Authorization: token $GITEA_TOKEN"
 ```
 
-#### Create Issue
+#### EXECUTE Create Issue
 ```bash
 curl -s -X POST "https://git.eaglepass.io/api/v1/repos/ops/homelab/issues" \
   -H "Authorization: token $GITEA_TOKEN" \
@@ -501,7 +582,7 @@ curl -s -X POST "https://git.eaglepass.io/api/v1/repos/ops/homelab/issues" \
   -d '{"title": "Issue Title", "body": "Issue description"}'
 ```
 
-#### Add Comment to Issue
+#### EXECUTE Add Comment to Issue
 ```bash
 curl -s -X POST "https://git.eaglepass.io/api/v1/repos/ops/homelab/issues/{issue_number}/comments" \
   -H "Authorization: token $GITEA_TOKEN" \
@@ -509,13 +590,13 @@ curl -s -X POST "https://git.eaglepass.io/api/v1/repos/ops/homelab/issues/{issue
   -d '{"body": "Comment text"}'
 ```
 
-#### List Pull Requests
+#### EXECUTE List Pull Requests
 ```bash
 curl -s "https://git.eaglepass.io/api/v1/repos/ops/homelab/pulls" \
   -H "Authorization: token $GITEA_TOKEN"
 ```
 
-#### Get Repository Info
+#### EXECUTE Get Repository Info
 ```bash
 curl -s "https://git.eaglepass.io/api/v1/repos/ops/homelab" \
   -H "Authorization: token $GITEA_TOKEN"
@@ -523,3 +604,36 @@ curl -s "https://git.eaglepass.io/api/v1/repos/ops/homelab" \
 
 ### API Documentation
 Full API documentation: https://git.eaglepass.io/api/swagger
+
+---
+
+## Completion Criteria
+
+**This workflow is COMPLETE when ALL of the following are TRUE:**
+
+1. ✅ Pre-flight checklist passes (all systems reachable)
+2. ✅ Issue category identified and diagnosed
+3. ✅ Fix applied and verified
+4. ✅ **Metal Layer**: GREEN - All nodes `Ready`, no resource pressure
+5. ✅ **System Layer**: GREEN - Ceph `HEALTH_OK`, all kube-system pods `Running`
+6. ✅ **Platform Layer**: GREEN - All ArgoCD apps `Synced` AND `Healthy`
+7. ✅ **Apps Layer**: GREEN - All pods `Running`, no error states
+8. ✅ **Overall Status**: GREEN across all layers
+9. ✅ ZERO issues remaining (CRITICAL through LOW)
+
+> [!CAUTION]
+> **DO NOT STOP UNTIL ALL CRITERIA ARE MET.**
+
+---
+
+## Mandatory Rules
+
+These rules are NON-NEGOTIABLE:
+
+1. **EXECUTE one fix at a time, VERIFY before proceeding**
+2. **ALWAYS validate ALL layers after each significant change**
+3. **NEVER consider work complete until ALL layers are GREEN**
+4. **ZERO tolerance for issues - resolve ALL severities (CRITICAL to LOW)**
+5. **DOCUMENT findings for recurring problems**
+6. **USE MCP tools as primary method, API as fallback only**
+7. **IF in doubt, GATHER more evidence before applying fixes**
