@@ -500,11 +500,11 @@ USE the available **Gitea** and **GitHub** MCP tools for all repository interact
 
 ### Common MCP Operations
 
-- **List Issues**: USE `list_issues` (Gitea) or `mcp_list_issues` (GitHub)
-- **Create Issue**: USE `create_issue` (Gitea) or `mcp_create_issue` (GitHub)
-- **Add Comment**: USE `add_issue_comment` (Gitea/GitHub)
-- **List PRs**: USE `list_pull_requests` (Gitea) or `mcp_list_pull_requests` (GitHub)
-- **Get Repo Info**: USE `get_repository` (Gitea) or `mcp_search_repositories` (GitHub)
+- **List Issues**: USE `gitea_list_repo_issues` (Gitea) or `list_issues` (GitHub)
+- **Create Issue**: USE `gitea_create_issue` (Gitea) or `create_issue` (GitHub)
+- **Add Comment**: USE `gitea_create_issue_comment` (Gitea) or `add_issue_comment` (GitHub)
+- **List PRs**: USE `gitea_list_repo_pull_requests` (Gitea) or `list_pull_requests` (GitHub)
+- **Get Repo Info**: USE `gitea_search_repos` (Gitea) or `search_repositories` (GitHub)
 
 ---
 

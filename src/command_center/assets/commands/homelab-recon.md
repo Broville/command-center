@@ -44,6 +44,10 @@ The text the user typed after the command **is** their priority input - it may s
 
 This workflow produces an **EXHAUSTIVE** maintenance issue that `/homelab-action` can execute **safely in small tasks, in the proper order, without context loss**.
 
+> [!IMPORTANT]
+> **RECON = RESEARCH ONLY.** This workflow gathers evidence and creates/updates the maintenance issue.
+> It does NOT execute actions, merge PRs, or modify infrastructure. That is `/homelab-action`'s job.
+
 It is **Spec-Driven Development (SDD)** adapted to operations:
 - **Context**: evidence capture (cluster + repo)
 - **Spec**: the maintenance issue (what should change, and why)
@@ -51,12 +55,11 @@ It is **Spec-Driven Development (SDD)** adapted to operations:
 - **Tasks**: top-level issue checkboxes (`- [ ]`) that are atomic
 - **Analysis**: self-audit that the issue is complete and actionable
 - **Remediation**: fill gaps, rerun analysis
-- **Implementation**: delegated to `/homelab-action`
-- **Validation**: recon + troubleshoot + recon until GREEN
+- **Handoff**: maintenance issue ready for `/homelab-action` (RECON STOPS HERE)
 
 > [!CAUTION]
 > **FOUNDATIONAL RULES APPLY** - See `_foundational-rules.md`.
-> The workflow is NOT complete until ALL layers are GREEN (or issues are fully captured in a maintenance issue for action).
+> This workflow is complete when the maintenance issue is ready for action (or confirms all layers are already GREEN).
 
 > [!IMPORTANT]
 > **Do NOT add comments to issues.** Comments are reserved for humans only.
@@ -508,23 +511,29 @@ EXECUTE these steps if Phase 6 audit failed:
 
 ---
 
-## Phase 8: Implementation (Delegate)
+## Phase 8: Handoff (Recon Complete)
 
-EXECUTE `/homelab-action` to consume the maintenance issue tasks.
+> [!IMPORTANT]
+> **RECON STOPS HERE.** This workflow does NOT execute actions or make changes.
+> The maintenance issue is now ready for `/homelab-action` to consume.
 
-**DO NOT PROCEED** to Phase 9 until `/homelab-action` completes.
+When Phase 7 (Remediation) completes successfully (or was skipped because Phase 6 passed), the recon workflow is COMPLETE.
 
----
+**What happens next** (NOT part of this workflow):
+1. The **user** or a **scheduled job** runs `/homelab-action`
+2. `/homelab-action` consumes the maintenance issue and executes the tasks
+3. After action completes, `/homelab-recon` can be run again for validation
 
-## Phase 9: Validation & Closure
+**This workflow's deliverables**:
+1. ✅ Status report at `reports/status-report-YYYY-MM-DD.md`
+2. ✅ Maintenance issue created/updated in Gitea with all required sections
+3. ✅ All evidence captured and documented
+4. ✅ All action items are atomic, ordered, and include rollback procedures
 
-After `/homelab-action` completes, EXECUTE these steps in order:
-
-1. **RUN** `/homelab-recon` to confirm all layers GREEN
-2. **IF ANY** layer is not GREEN: RUN `/homelab-troubleshoot` to drive back to GREEN
-3. **RUN** `/homelab-recon` again as final proof
-4. **ENSURE** the maintenance issue is closed with `[RESOLVED]` and includes closure notes
-5. **VERIFY** closure notes document: what was done, final state, any follow-up items
+> [!CAUTION]
+> **DO NOT** proceed to execute `/homelab-action` as part of this workflow.
+> **DO NOT** make any cluster changes, merge PRs, or modify infrastructure.
+> This is RECON ONLY.
 
 ---
 
@@ -607,15 +616,10 @@ COMPLETE **ALL** items before considering workflow finished:
 - [ ] 7.3 Maintenance issue updated with corrections
 - [ ] 7.4 Phase 6 self-audit re-run and PASSED
 
-### Phase 8: Implementation
-- [ ] 8.1 `/homelab-action` delegated and executed
-- [ ] 8.2 All action items completed
-
-### Phase 9: Validation & Closure
-- [ ] 9.1 `/homelab-recon` run for final validation
-- [ ] 9.2 If not GREEN: `/homelab-troubleshoot` executed until GREEN
-- [ ] 9.3 Final `/homelab-recon` confirms ALL layers GREEN
-- [ ] 9.4 Maintenance issue closed with `[RESOLVED]` and closure notes
+### Phase 8: Handoff (Recon Complete)
+- [ ] 8.1 Status report written and complete
+- [ ] 8.2 Maintenance issue ready for `/homelab-action` consumption
+- [ ] 8.3 NO changes made to cluster, repos, or infrastructure
 
 ---
 
@@ -623,15 +627,21 @@ COMPLETE **ALL** items before considering workflow finished:
 
 **This workflow is COMPLETE when ALL of the following are TRUE:**
 
-1. ✅ Phase 1 evidence is fully captured and documented
+1. ✅ Phase 1 evidence is fully captured and documented (all 10 sub-items)
 2. ✅ Status report exists at `reports/status-report-YYYY-MM-DD.md`
 3. ✅ Maintenance issue is created/updated with ALL required sections filled
 4. ✅ Phase 6 self-audit passes (ALL checks verified)
-5. ✅ ALL infrastructure layers report GREEN status
-6. ✅ Maintenance issue is closed with `[RESOLVED]` status and closure notes
+5. ✅ Maintenance issue is ready for `/homelab-action` to consume
 
 > [!CAUTION]
-> **DO NOT STOP UNTIL ALL CRITERIA ARE MET.**
+> **RECON DOES NOT**:
+> - Execute `/homelab-action`
+> - Make cluster changes
+> - Merge PRs
+> - Close issues
+> - Modify infrastructure
+>
+> If all layers are already GREEN, the maintenance issue will reflect that with no action items.
 
 ---
 
