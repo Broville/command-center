@@ -62,8 +62,13 @@ It is **Spec-Driven Development (SDD)** adapted to operations:
 > **Do NOT add comments to issues.** Comments are reserved for humans only.
 > Always **edit the original issue body** to merge new data into the existing content.
 
+## Definitions
+
+**Maintenance Issue**: A **Gitea Issue** in the `ops/homelab` repository at `https://git.eaglepass.io/ops/homelab/issues` with the label `maintenance`. This is the single source of truth for all maintenance work. It is NOT a local file, NOT a GitHub issue, and NOT any other artifact. When this document refers to "maintenance issue," it means this specific Gitea Issue.
+
 ## References
 
+- **Maintenance Issue Template**: `homelab-maintenance-issue-template.md` (MUST use for all maintenance issues)
 - **Documentation**: https://homelab.eaglepass.io
 - **Primary Repo**: https://git.eaglepass.io/ops/homelab
 - **Fallback Repo**: https://github.com/brimdor/homelab (auto-synced)
@@ -149,7 +154,82 @@ kubectl get applications -n argocd | grep -v "Synced.*Healthy" || true
 kubectl get events -A --sort-by=.lastTimestamp | tail -200
 ```
 
-### 1.4 Capture System/Core Evidence (kube-system, CNI)
+### 1.4 Capture Network Evidence
+
+EXECUTE network health checks using BOTH methods:
+
+**Method 1: In-Cluster Testing (Pod-Based)**
+
+```bash
+# Deploy temporary network test pod
+kubectl apply -f network-test-pod.yaml
+
+# Wait for completion and capture output
+kubectl wait --for=condition=Ready pod/network-test-pod --timeout=60s || true
+kubectl logs network-test-pod
+
+# Cleanup
+kubectl delete pod network-test-pod --ignore-not-found
+```
+
+**Method 2: External Network Testing (Script-Based)**
+
+```bash
+# Run comprehensive network health check
+homelab-network-check.sh --verbose
+
+# Or with JSON output for parsing
+homelab-network-check.sh --json
+```
+
+**GREEN Criteria for Network Layer**:
+| Check | GREEN | YELLOW | RED |
+|-------|-------|--------|-----|
+| VLAN Gateways | All reachable | 1-2 unreachable | 3+ unreachable |
+| OPNSense | Reachable, ports open | Slow response | Unreachable |
+| Latency | <50ms | 50-100ms | >100ms |
+| Packet Loss | 0% | 1-5% | >5% |
+| Internet | Both DNS servers reachable | 1 DNS reachable | None reachable |
+
+### 1.5 Capture Storage/NAS Evidence (Unraid)
+
+EXECUTE NAS health checks:
+
+```bash
+# Run comprehensive NAS health check
+homelab-nas-check.sh --verbose
+
+# Or with JSON output for parsing
+homelab-nas-check.sh --json
+```
+
+**Manual verification (if script unavailable)**:
+
+```bash
+# Test NAS reachability
+ping -c 3 10.0.40.3
+
+# Test SMB ports
+nc -zv 10.0.40.3 445
+
+# Test NFS ports (if applicable)
+nc -zv 10.0.40.3 2049
+
+# Test web interface
+curl -s -o /dev/null -w "%{http_code}" http://10.0.40.3
+```
+
+**GREEN Criteria for Storage/NAS Layer**:
+| Check | GREEN | YELLOW | RED |
+|-------|-------|--------|-----|
+| Ping | Reachable, <10ms | Reachable, 10-50ms | Unreachable |
+| SMB (445) | Port open | - | Port closed |
+| NFS (2049) | Port open | - | Port closed |
+| Web Interface | Accessible | Auth required | Unreachable |
+| Read Latency | <50ms | 50-100ms | >100ms |
+| Write Latency | <100ms | 100-200ms | >200ms |
+
+### 1.6 Capture System/Core Evidence (kube-system, CNI)
 
 EXECUTE these commands and CAPTURE output as evidence:
 
@@ -162,7 +242,7 @@ kubectl -n kube-system get ds | grep -i cilium || true
 kubectl -n kube-system get pods -l k8s-app=cilium -o wide || true
 ```
 
-### 1.5 Capture Storage Evidence (Rook/Ceph)
+### 1.7 Capture Ceph Storage Evidence (Rook/Ceph)
 
 EXECUTE these commands and CAPTURE output as evidence:
 
@@ -180,7 +260,7 @@ If Ceph is NOT `HEALTH_OK`, ALSO CAPTURE:
 - `ceph crash ls-new` and `ceph crash info <id>` (for each new crash)
 - rook-ceph operator logs (recent)
 
-### 1.6 Capture Platform Evidence (Ingress, Certs, Secrets, Observability)
+### 1.8 Capture Platform Evidence (Ingress, Certs, Secrets, Observability)
 
 EXECUTE these commands and CAPTURE output as evidence:
 
@@ -206,7 +286,7 @@ kubectl get pods -n monitoring-system -o wide || true
 kubectl get pods -n grafana -o wide || true
 ```
 
-### 1.7 Capture Apps Evidence (error-focused)
+### 1.9 Capture Apps Evidence (error-focused)
 
 EXECUTE these commands to IDENTIFY problematic pods:
 
@@ -219,7 +299,7 @@ For EACH non-running pod found, EXECUTE and CAPTURE:
 - `kubectl describe pod -n <ns> <pod>`
 - `kubectl logs -n <ns> <pod> --tail=200` (and `--previous` if crashed)
 
-### 1.8 Capture Repo Evidence (Issues + PRs)
+### 1.10 Capture Repo Evidence (Issues + PRs)
 
 EXECUTE repo evidence capture using these methods:
 
@@ -308,96 +388,96 @@ WRITE a report to `reports/`:
 - Content: raw evidence from Phase 1
 - Purpose: archive for reference; maintenance issue stores actionable spec + tasks
 
-### 5.2 CREATE or UPDATE Maintenance Issue
+### 5.2 CHECK for Existing Maintenance Issue
 
-EXECUTE these steps in order:
+> [!CAUTION]
+> You MUST check for an existing open maintenance issue BEFORE creating a new one.
+> Creating duplicate maintenance issues is NOT ACCEPTABLE.
 
-1. **FIND** the latest open issue labeled `maintenance`
-2. **IF FOUND**: EDIT body (no comments), MERGE new findings into existing content
-3. **IF NOT FOUND**: CREATE a new issue titled `[Maintenance] YYYY-MM-DD - Homelab`
-4. **ALWAYS** add label `maintenance` (ID: 10)
-5. **ALWAYS** assign `gitea_admin`
+EXECUTE this check FIRST:
 
-### 5.3 Maintenance Issue Template (Contract-Complete)
-
-USE this template for the maintenance issue:
-
-```markdown
-# [Maintenance] YYYY-MM-DD - Homelab
-
-## Status
-- **Overall**: GREEN / YELLOW / RED
-- **Last Updated**: YYYY-MM-DD HH:MM TZ
-- **Source Report**: `reports/status-report-YYYY-MM-DD.md`
-
----
-
-## Context Pack
-
-### Cluster Identity
-- K3s version: ...
-- Node count: ...
-- ArgoCD apps: ...
-- Ceph: HEALTH_OK/...
-
-### Current Health Evidence (Snapshot)
-- Nodes: ...
-- Non-running pods: ...
-- ArgoCD non-healthy apps: ...
-- Ceph health summary: ...
-
-### Repo Inventory (Actionable)
-- Open Renovate PRs: ...
-- Open user PRs: ...
-- Open non-maintenance issues: ...
-
----
-
-## Proposed Changes (Spec)
-
-| Item | Type | Layer | Priority | Risk | Summary | Notes |
-|------|------|:-----:|:--------:|:----:|---------|-------|
-
----
-
-## Execution Plan
-- Ordering: P0→P3, Metal→Apps, DB last
-- Validation gate: run after every change
-- Stop conditions: any non-GREEN, any unknown rollback
-
----
-
-## Action Items (Tasks)
-
-> All executable steps MUST be top-level `- [ ]` checkboxes.
-> Each checkbox MUST be atomic.
-
-### Phase A: Preflight
-- [ ] A1 P0 Preflight: verify access (kubectl/controller/gitea)
-- [ ] A2 P0 Preflight: capture baseline snapshot (nodes/pods/apps/ceph)
-
-### Phase B: Remediate Current Findings
-- [ ] B1 P0 System: resolve any Ceph HEALTH_WARN/ERR
-
-### Phase C: Planned Changes (ordered)
-- [ ] C1 P2 PR #X: read release notes + list breaking changes
-- [ ] C2 P2 PR #X: merge PR
-- [ ] C3 P2 PR #X: run validation gate, document outcome
-
-### Phase D: Final Validation
-- [ ] D1 P0 Run `/homelab-recon` (final)
-
----
-
-## Change Log
-| Timestamp | Step | Item | Result | Status After |
-|-----------|:----:|------|--------|:------------:|
-
----
-
-## Closure (Filled by homelab-action)
-(Use the closure template defined in `homelab-action.md`)
+```bash
+source ~/.config/gitea/.env
+curl -s "https://git.eaglepass.io/api/v1/repos/ops/homelab/issues?state=open&labels=maintenance" \
+  -H "Authorization: token $GITEA_TOKEN" | jq -r '.[0] | "Issue #\(.number): \(.title)"'
 ```
+
+Or USE MCP tool: `gitea_list_repo_issues` with `state: open` and filter for label `maintenance`
+
+**Decision Tree**:
+- **IF issue found**: PROCEED to 5.3 (UPDATE existing issue)
+- **IF no issue found**: PROCEED to 5.4 (CREATE new issue)
+
+### 5.3 UPDATE Existing Maintenance Issue
+
+When an open maintenance issue EXISTS, EXECUTE these steps:
+
+1. **FETCH** the current issue body
+2. **MERGE** new findings into existing content (do NOT replace entirely)
+3. **UPDATE** the Status section with new timestamp and current layer states
+4. **ADD** new items to Action Items section (preserve existing unchecked items)
+5. **UPDATE** the Proposed Changes table with any new changes
+6. **EDIT** the issue body using API or MCP tool (NO COMMENTS)
+
+```bash
+# USE MCP tool: gitea_edit_issue
+# OR API:
+curl -s -X PATCH "https://git.eaglepass.io/api/v1/repos/ops/homelab/issues/{issue_number}" \
+  -H "Authorization: token $GITEA_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"body": "UPDATED_BODY_HERE"}'
+```
+
+### 5.4 CREATE New Maintenance Issue
+
+When NO open maintenance issue exists, EXECUTE these steps:
+
+1. **USE** the template from `homelab-maintenance-issue-template.md`
+2. **POPULATE** all sections with evidence from Phase 1
+3. **ORDER** action items by: Priority (P0→P3) → Layer (Metal→System→Platform→Apps) → Dependencies
+4. **CREATE** the issue with title: `[Maintenance] YYYY-MM-DD - Homelab`
+5. **ADD** label `maintenance` (ID: 10)
+6. **ASSIGN** to `gitea_admin`
+
+```bash
+# USE MCP tool: gitea_create_issue + gitea_add_issue_labels
+# OR API:
+curl -s -X POST "https://git.eaglepass.io/api/v1/repos/ops/homelab/issues" \
+  -H "Authorization: token $GITEA_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "[Maintenance] YYYY-MM-DD - Homelab", "body": "ISSUE_BODY", "labels": [10], "assignees": ["gitea_admin"]}'
+```
+
+### 5.5 Maintenance Issue Structure Requirements
+
+> [!IMPORTANT]
+> The maintenance issue MUST follow the structure defined in `homelab-maintenance-issue-template.md`.
+> This template is the contract - any deviation is a workflow failure.
+
+**Required Sections** (in order):
+1. **Status** - Overall status, last updated, source report
+2. **Context Pack** - Cluster identity, health evidence, repo inventory
+3. **Proposed Changes (Spec)** - Table with ID, Type, Layer, Priority, Impact, Downtime, Summary, Dependencies
+4. **Execution Plan** - Ordering rules, validation gate, stop conditions
+5. **Action Items (Tasks)** - Ordered checkboxes with Goal/Commands/Expected/If-fails/Rollback
+6. **Change Log** - Timestamped record of actions taken
+7. **Closure** - Filled by homelab-action when complete
+
+**Action Item Ordering Rules**:
+| Order | Criteria | Example |
+|:-----:|----------|---------|
+| 1st | Priority | P0 before P1 before P2 before P3 |
+| 2nd | Layer | Metal → System → Platform → Apps |
+| 3rd | Dependencies | Prerequisites before dependent items |
+| 4th | Risk | Lower risk items before higher risk |
+| Last | Databases | Always processed last within priority |
+
+**Each Action Item MUST Include**:
+- **Goal**: What this action achieves
+- **Commands**: Exact commands to run
+- **Expected**: Success criteria
+- **If fails**: Next diagnostic steps
+- **Rollback**: Exact rollback commands or "N/A"
 
 ---
 
@@ -478,13 +558,64 @@ USE MCP tools for all repo interactions when available:
 
 ## Execution Checklist
 
-COMPLETE all items before considering workflow finished:
+COMPLETE **ALL** items before considering workflow finished:
 
-- [ ] Phase 1: Access verified, evidence captured
-- [ ] Phase 5: Status report written to `reports/`
-- [ ] Phase 5: Maintenance issue created/updated (no comments)
-- [ ] Phase 6: Maintenance issue passes self-audit (ALL checks verified)
-- [ ] Phase 9: Final recon + troubleshoot loop yields all GREEN
+### Phase 1: Context Loading
+- [ ] 1.1 Access established (workstation or controller fallback)
+- [ ] 1.2 Access validated (kubectl, SSH, Gitea API all succeed)
+- [ ] 1.3 Baseline health snapshot captured
+- [ ] 1.4 Network evidence captured (VLANs, OPNSense, latency)
+- [ ] 1.5 Storage/NAS evidence captured (Unraid reachability, shares)
+- [ ] 1.6 System/Core evidence captured (kube-system, CNI)
+- [ ] 1.7 Ceph Storage evidence captured (Rook/Ceph)
+- [ ] 1.8 Platform evidence captured (Ingress, Certs, Secrets, Observability)
+- [ ] 1.9 Apps evidence captured (error-focused)
+- [ ] 1.10 Repo evidence captured (Issues + PRs)
+
+### Phase 2: Specification
+- [ ] 2.1 All changes identified from Phase 1 evidence
+- [ ] 2.2 Reasons documented for each change
+- [ ] 2.3 Constraints defined (ordering, downtime, windows)
+- [ ] 2.4 Acceptance criteria set (ALL layers GREEN)
+
+### Phase 3: Clarification
+- [ ] 3.1 Decision gates identified
+- [ ] 3.2 Human escalation rules applied where required
+- [ ] 3.3 All other decisions encoded as tasks
+
+### Phase 4: Planning
+- [ ] 4.1 Tasks ordered by priority (P0→P3) and layer (Metal→Network→Storage→System→Platform→Apps)
+- [ ] 4.2 Validation gate defined for post-change checks
+- [ ] 4.3 Stop conditions documented
+
+### Phase 5: Task Generation
+- [ ] 5.1 Status report written to `reports/status-report-YYYY-MM-DD.md`
+- [ ] 5.2 Maintenance issue created OR updated (body edited, no comments)
+- [ ] 5.3 Issue follows contract template (all required sections present)
+
+### Phase 6: Analysis (Self-Audit)
+- [ ] 6.1 Every non-GREEN finding has a remediation task or decision gate
+- [ ] 6.2 Every PR has spec row + decision + validation task
+- [ ] 6.3 Major/breaking updates have release notes + staged rollout
+- [ ] 6.4 Risky steps include backups + rollback procedures
+- [ ] 6.5 Tasks are top-level `- [ ]`, atomic, and ordered
+- [ ] 6.6 ALL contract requirements met
+
+### Phase 7: Remediation (if Phase 6 failed)
+- [ ] 7.1 Gaps identified from Phase 6 failures
+- [ ] 7.2 Missing data gathered via Phase 1 re-execution
+- [ ] 7.3 Maintenance issue updated with corrections
+- [ ] 7.4 Phase 6 self-audit re-run and PASSED
+
+### Phase 8: Implementation
+- [ ] 8.1 `/homelab-action` delegated and executed
+- [ ] 8.2 All action items completed
+
+### Phase 9: Validation & Closure
+- [ ] 9.1 `/homelab-recon` run for final validation
+- [ ] 9.2 If not GREEN: `/homelab-troubleshoot` executed until GREEN
+- [ ] 9.3 Final `/homelab-recon` confirms ALL layers GREEN
+- [ ] 9.4 Maintenance issue closed with `[RESOLVED]` and closure notes
 
 ---
 

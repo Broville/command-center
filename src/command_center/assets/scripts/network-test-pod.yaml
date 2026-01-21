@@ -1,0 +1,154 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: network-test-pod
+  namespace: default
+  labels:
+    app: network-test
+spec:
+  restartPolicy: Never
+  terminationGracePeriodSeconds: 5
+  containers:
+  - name: network-test
+    image: busybox:latest
+    command:
+    - /bin/sh
+    - -c
+    - |
+      echo "=========================================="
+      echo "  In-Cluster Network Health Check"
+      echo "=========================================="
+      echo ""
+      echo "Timestamp: $(date -Iseconds)"
+      echo ""
+      
+      OVERALL_STATUS="GREEN"
+      ERRORS=""
+      WARNINGS=""
+      
+      check_result() {
+        local name="$1"
+        local status="$2"
+        local msg="$3"
+        
+        if [ "$status" = "GREEN" ]; then
+          echo "✓ $name: $msg"
+        elif [ "$status" = "YELLOW" ]; then
+          echo "⚠ $name: $msg"
+          WARNINGS="$WARNINGS\n  - $name: $msg"
+          [ "$OVERALL_STATUS" = "GREEN" ] && OVERALL_STATUS="YELLOW"
+        else
+          echo "✗ $name: $msg"
+          ERRORS="$ERRORS\n  - $name: $msg"
+          OVERALL_STATUS="RED"
+        fi
+      }
+      
+      # Test DNS resolution
+      echo ">> Testing DNS Resolution..."
+      if nslookup kubernetes.default.svc.cluster.local > /dev/null 2>&1; then
+        check_result "K8S_DNS" "GREEN" "kubernetes.default.svc.cluster.local resolves"
+      else
+        check_result "K8S_DNS" "RED" "Cannot resolve kubernetes.default.svc.cluster.local"
+      fi
+      
+      if nslookup google.com > /dev/null 2>&1; then
+        check_result "EXTERNAL_DNS" "GREEN" "google.com resolves"
+      else
+        check_result "EXTERNAL_DNS" "RED" "Cannot resolve google.com"
+      fi
+      
+      echo ""
+      echo ">> Testing Internal Connectivity..."
+      
+      # Test Kubernetes API
+      if wget -q -O /dev/null --timeout=5 https://kubernetes.default.svc.cluster.local:443 2>/dev/null || \
+         wget -q -O /dev/null --timeout=5 --no-check-certificate https://kubernetes.default.svc.cluster.local:443 2>/dev/null; then
+        check_result "K8S_API" "GREEN" "Kubernetes API reachable"
+      else
+        # Try without SSL verification
+        if nc -z -w 5 kubernetes.default.svc.cluster.local 443 2>/dev/null; then
+          check_result "K8S_API" "GREEN" "Kubernetes API port open"
+        else
+          check_result "K8S_API" "RED" "Cannot reach Kubernetes API"
+        fi
+      fi
+      
+      echo ""
+      echo ">> Testing VLAN Gateways..."
+      
+      # Test VLAN gateways (adjust IPs as needed)
+      VLANS="10.0.10.1 10.0.20.1 10.0.30.1 10.0.40.1 10.0.50.1 10.0.60.1"
+      for gateway in $VLANS; do
+        if ping -c 2 -W 2 "$gateway" > /dev/null 2>&1; then
+          LATENCY=$(ping -c 2 -W 2 "$gateway" 2>/dev/null | grep -o 'time=[0-9.]*' | head -1 | cut -d= -f2)
+          check_result "VLAN_${gateway}" "GREEN" "Reachable (${LATENCY}ms)"
+        else
+          check_result "VLAN_${gateway}" "YELLOW" "Unreachable"
+        fi
+      done
+      
+      echo ""
+      echo ">> Testing Critical Infrastructure..."
+      
+      # Test OPNSense
+      if ping -c 2 -W 2 10.0.0.1 > /dev/null 2>&1; then
+        check_result "OPNSENSE" "GREEN" "Reachable"
+      else
+        check_result "OPNSENSE" "RED" "Unreachable"
+      fi
+      
+      # Test NAS
+      if ping -c 2 -W 2 10.0.40.3 > /dev/null 2>&1; then
+        check_result "NAS" "GREEN" "Reachable"
+      else
+        check_result "NAS" "RED" "Unreachable"
+      fi
+      
+      # Test Controller
+      if ping -c 2 -W 2 10.0.20.10 > /dev/null 2>&1; then
+        check_result "CONTROLLER" "GREEN" "Reachable"
+      else
+        check_result "CONTROLLER" "RED" "Unreachable"
+      fi
+      
+      echo ""
+      echo ">> Testing External Connectivity..."
+      
+      # Test internet (via ping)
+      if ping -c 2 -W 2 1.1.1.1 > /dev/null 2>&1; then
+        check_result "CLOUDFLARE" "GREEN" "1.1.1.1 reachable"
+      else
+        check_result "CLOUDFLARE" "RED" "1.1.1.1 unreachable"
+      fi
+      
+      if ping -c 2 -W 2 8.8.8.8 > /dev/null 2>&1; then
+        check_result "GOOGLE_DNS" "GREEN" "8.8.8.8 reachable"
+      else
+        check_result "GOOGLE_DNS" "RED" "8.8.8.8 unreachable"
+      fi
+      
+      echo ""
+      echo "=========================================="
+      echo ""
+      
+      if [ "$OVERALL_STATUS" = "GREEN" ]; then
+        echo "✓ IN-CLUSTER NETWORK: GREEN"
+        exit 0
+      elif [ "$OVERALL_STATUS" = "YELLOW" ]; then
+        echo "⚠ IN-CLUSTER NETWORK: YELLOW"
+        echo -e "Warnings:$WARNINGS"
+        exit 1
+      else
+        echo "✗ IN-CLUSTER NETWORK: RED"
+        echo -e "Errors:$ERRORS"
+        [ -n "$WARNINGS" ] && echo -e "Warnings:$WARNINGS"
+        exit 2
+      fi
+    resources:
+      limits:
+        cpu: "100m"
+        memory: "64Mi"
+      requests:
+        cpu: "50m"
+        memory: "32Mi"

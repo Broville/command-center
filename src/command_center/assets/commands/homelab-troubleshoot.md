@@ -449,6 +449,8 @@ kubectl get events -A --field-selector type=Warning --sort-by='.lastTimestamp' |
 | Layer | Check | GREEN Criteria | RED Criteria |
 |-------|-------|----------------|--------------|
 | **Metal** | `kubectl get nodes` | All `Ready` | Any `NotReady` |
+| **Network** | `homelab-network-check.sh` | All VLANs reachable, latency <50ms | Unreachable or >100ms |
+| **Storage (NAS)** | `homelab-nas-check.sh` | Unraid reachable, shares accessible | Unreachable |
 | **System** | `ceph health` | `HEALTH_OK` | `HEALTH_WARN` or `HEALTH_ERR` |
 | **System** | kube-system pods | All `Running` | Any `CrashLoopBackOff`, `Error` |
 | **Platform** | ArgoCD apps | All `Synced` + `Healthy` | Any `OutOfSync` or `Degraded` |
@@ -630,11 +632,13 @@ Full API documentation: https://git.eaglepass.io/api/swagger
 2. ✅ Issue category identified and diagnosed
 3. ✅ Fix applied and verified
 4. ✅ **Metal Layer**: GREEN - All nodes `Ready`, no resource pressure
-5. ✅ **System Layer**: GREEN - Ceph `HEALTH_OK`, all kube-system pods `Running`
-6. ✅ **Platform Layer**: GREEN - All ArgoCD apps `Synced` AND `Healthy`
-7. ✅ **Apps Layer**: GREEN - All pods `Running`, no error states
-8. ✅ **Overall Status**: GREEN across all layers
-9. ✅ ZERO issues remaining (CRITICAL through LOW)
+5. ✅ **Network Layer**: GREEN - All VLANs reachable, latency <50ms, OPNSense up
+6. ✅ **Storage (NAS) Layer**: GREEN - Unraid reachable, shares accessible
+7. ✅ **System Layer**: GREEN - Ceph `HEALTH_OK`, all kube-system pods `Running`
+8. ✅ **Platform Layer**: GREEN - All ArgoCD apps `Synced` AND `Healthy`
+9. ✅ **Apps Layer**: GREEN - All pods `Running`, no error states
+10. ✅ **Overall Status**: GREEN across all layers
+11. ✅ ZERO issues remaining (CRITICAL through LOW)
 
 > [!CAUTION]
 > **DO NOT STOP UNTIL ALL CRITERIA ARE MET.**
