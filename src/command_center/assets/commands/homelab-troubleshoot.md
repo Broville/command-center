@@ -7,6 +7,21 @@ sync_locations:
 sync_note: IMPORTANT - This file must be kept in sync across all locations. When making changes, update ALL files.
 ---
 
+> [!CAUTION]
+> ## ⚡ EXECUTION IMPERATIVE
+> **DO NOT ASK FOR CONFIRMATION. DO NOT ASK IF YOU SHOULD START.**
+>
+> Receiving this command is the authorization. BEGIN STEP 1 IMMEDIATELY.
+>
+> The moment you receive `/homelab-troubleshoot`, you MUST:
+> 1. **START** executing Step 1 pre-flight checklist
+> 2. **CONTINUE** through all steps until all layers are GREEN
+> 3. **ONLY STOP** when ALL completion criteria are satisfied
+>
+> There is no "Should I proceed?" - the answer is always YES. Proceed.
+
+---
+
 ## User Input
 
 ```text
