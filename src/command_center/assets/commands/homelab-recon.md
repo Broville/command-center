@@ -138,6 +138,18 @@ curl -s "https://git.eaglepass.io/api/v1/user" -H "Authorization: token $GITEA_T
 
 ### 1.3 Capture Baseline Health Snapshot
 
+**Preferred Method: Script-Based (Recommended)**
+
+```bash
+# Run comprehensive recon script
+~/homelab/scripts/recon.sh
+
+# Or with JSON output for parsing
+~/homelab/scripts/recon.sh --json
+```
+
+**Alternative: Manual Commands**
+
 EXECUTE these commands and CAPTURE output as evidence:
 
 ```bash
@@ -159,9 +171,19 @@ kubectl get events -A --sort-by=.lastTimestamp | tail -200
 
 ### 1.4 Capture Network Evidence
 
-EXECUTE network health checks using BOTH methods:
+**Preferred Method: Script-Based (Recommended)**
 
-**Method 1: In-Cluster Testing (Pod-Based)**
+```bash
+# Run network health check script
+~/homelab/scripts/homelab-network-check.sh --verbose
+
+# Or with JSON output for parsing
+~/homelab/scripts/homelab-network-check.sh --json
+```
+
+**Exit Codes**: 0=GREEN, 1=RED, 2=YELLOW
+
+**Alternative: In-Cluster Testing (Pod-Based)**
 
 ```bash
 # Deploy temporary network test pod
@@ -196,17 +218,19 @@ homelab-network-check.sh --json
 
 ### 1.5 Capture Storage/NAS Evidence (Unraid)
 
-EXECUTE NAS health checks:
+**Preferred Method: Script-Based (Recommended)**
 
 ```bash
-# Run comprehensive NAS health check
-homelab-nas-check.sh --verbose
+# Run NAS health check script
+~/homelab/scripts/homelab-nas-check.sh --verbose
 
 # Or with JSON output for parsing
-homelab-nas-check.sh --json
+~/homelab/scripts/homelab-nas-check.sh --json
 ```
 
-**Manual verification (if script unavailable)**:
+**Exit Codes**: 0=GREEN, 1=RED, 2=YELLOW
+
+**Alternative: Manual Verification**
 
 ```bash
 # Test NAS reachability
@@ -397,15 +421,19 @@ WRITE a report to `reports/`:
 > You MUST check for an existing open maintenance issue BEFORE creating a new one.
 > Creating duplicate maintenance issues is NOT ACCEPTABLE.
 
-EXECUTE this check FIRST:
+**Preferred Method: Script-Based (Recommended)**
 
 ```bash
+# Check for existing issue
 source ~/.config/gitea/.env
-curl -s "https://git.eaglepass.io/api/v1/repos/ops/homelab/issues?state=open&labels=maintenance" \
-  -H "Authorization: token $GITEA_TOKEN" | jq -r '.[0] | "Issue #\(.number): \(.title)"'
+~/homelab/scripts/homelab-maintenance-issue.py --check-existing
 ```
 
-Or USE MCP tool: `gitea_list_repo_issues` with `state: open` and filter for label `maintenance`
+**Output**: JSON with `exists`, `number`, `url` if found.
+
+**Alternative: MCP Tool**
+
+USE MCP tool: `gitea_list_repo_issues` with `state: open` and filter for label `maintenance`
 
 **Decision Tree**:
 - **IF issue found**: PROCEED to 5.3 (UPDATE existing issue)
@@ -413,42 +441,53 @@ Or USE MCP tool: `gitea_list_repo_issues` with `state: open` and filter for labe
 
 ### 5.3 UPDATE Existing Maintenance Issue
 
-When an open maintenance issue EXISTS, EXECUTE these steps:
+**Preferred Method: Script-Based (Recommended)**
 
-1. **FETCH** the current issue body
-2. **MERGE** new findings into existing content (do NOT replace entirely)
-3. **UPDATE** the Status section with new timestamp and current layer states
-4. **ADD** new items to Action Items section (preserve existing unchecked items)
-5. **UPDATE** the Proposed Changes table with any new changes
-6. **EDIT** the issue body using API or MCP tool (NO COMMENTS)
+1. **POPULATE** the YAML schema with evidence data
+2. **EXECUTE** the script to update the issue
+
+```bash
+# Populate YAML with evidence data, then:
+source ~/.config/gitea/.env
+~/homelab/scripts/homelab-maintenance-issue.py --input /tmp/maintenance-data.yaml
+```
+
+The script automatically:
+- Finds the existing open maintenance issue
+- Generates the markdown body from the YAML data
+- Updates the issue body (NO COMMENTS)
+
+**Alternative: MCP Tool**
 
 ```bash
 # USE MCP tool: gitea_edit_issue
-# OR API:
-curl -s -X PATCH "https://git.eaglepass.io/api/v1/repos/ops/homelab/issues/{issue_number}" \
-  -H "Authorization: token $GITEA_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"body": "UPDATED_BODY_HERE"}'
 ```
 
 ### 5.4 CREATE New Maintenance Issue
 
-When NO open maintenance issue exists, EXECUTE these steps:
+**Preferred Method: Script-Based (Recommended)**
 
-1. **USE** the template from `homelab-maintenance-issue-template.md`
-2. **POPULATE** all sections with evidence from Phase 1
-3. **ORDER** action items by: Priority (P0→P3) → Layer (Metal→System→Platform→Apps) → Dependencies
-4. **CREATE** the issue with title: `[Maintenance] YYYY-MM-DD - Homelab`
-5. **ADD** label `maintenance` (ID: 10)
-6. **ASSIGN** to `gitea_admin`
+1. **POPULATE** the YAML schema (`homelab-maintenance-issue.schema.yaml`) with evidence data
+2. **EXECUTE** the script to create the issue
 
 ```bash
-# USE MCP tool: gitea_create_issue + gitea_add_issue_labels
-# OR API:
-curl -s -X POST "https://git.eaglepass.io/api/v1/repos/ops/homelab/issues" \
-  -H "Authorization: token $GITEA_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"title": "[Maintenance] YYYY-MM-DD - Homelab", "body": "ISSUE_BODY", "labels": [10], "assignees": ["gitea_admin"]}'
+# Populate YAML with evidence data, then:
+source ~/.config/gitea/.env
+~/homelab/scripts/homelab-maintenance-issue.py --input /tmp/maintenance-data.yaml
+```
+
+The script automatically:
+- Generates the markdown body from the YAML data
+- Creates the issue with correct title format
+- Adds the `maintenance` label (ID: 10)
+- Assigns to `gitea_admin`
+
+**YAML Schema Location**: `templates/homelab-maintenance-issue.schema.yaml`
+
+**Alternative: MCP Tool**
+
+```bash
+# USE MCP tools: gitea_create_issue + gitea_add_issue_labels
 ```
 
 ### 5.5 Maintenance Issue Structure Requirements
@@ -484,9 +523,14 @@ curl -s -X POST "https://git.eaglepass.io/api/v1/repos/ops/homelab/issues" \
 
 ---
 
-## Phase 6: Analysis (Self-Audit: Is the Issue Truly EXHAUSTIVE?)
+## Phase 6: Analysis (Automated Self-Audit - USER INTERACTION FORBIDDEN)
 
-Before handing off to `/homelab-action`, EXECUTE this self-audit checklist:
+> [!CAUTION]
+> **AGENT AUTHORITY ONLY**: This phase is an **AUTOMATED SELF-AUDIT**.
+> **DO NOT** stop to ask the user to verify. **YOU** must verify against the criteria below.
+> The only valid stopping point is Phase 8 (Handoff).
+
+Before handing off to `/homelab-action`, EXECUTE this self-audit checklist **AUTONOMOUSLY**:
 
 - [ ] **VERIFY** every non-GREEN finding has a remediation task OR an explicit decision gate
 - [ ] **VERIFY** every PR has: spec row + merge/close decision + validation task
@@ -496,6 +540,7 @@ Before handing off to `/homelab-action`, EXECUTE this self-audit checklist:
 - [ ] **CONFIRM** all contract requirements from "Maintenance Issue Contract" section are met
 
 **IF ANY CHECK FAILS**: RETURN to Phase 1 and GATHER missing data.
+**IF ALL CHECKS PASS**: PROCEED IMMEDIATELY to Phase 8. DO NOT ASK FOR PERMISSION.
 
 ---
 
@@ -546,6 +591,7 @@ USE MCP tools for all repo interactions when available:
 - `gitea_create_issue` - CREATE new maintenance issue
 - `gitea_edit_issue` - UPDATE existing issue body
 - `gitea_add_issue_labels` - ADD labels to issue
+- `gitea_search_repos` - SEARCH repositories (if needed)
 
 ---
 
@@ -602,13 +648,13 @@ COMPLETE **ALL** items before considering workflow finished:
 - [ ] 5.2 Maintenance issue created OR updated (body edited, no comments)
 - [ ] 5.3 Issue follows contract template (all required sections present)
 
-### Phase 6: Analysis (Self-Audit)
+### Phase 6: Analysis (Automated Self-Audit)
 - [ ] 6.1 Every non-GREEN finding has a remediation task or decision gate
 - [ ] 6.2 Every PR has spec row + decision + validation task
 - [ ] 6.3 Major/breaking updates have release notes + staged rollout
 - [ ] 6.4 Risky steps include backups + rollback procedures
 - [ ] 6.5 Tasks are top-level `- [ ]`, atomic, and ordered
-- [ ] 6.6 ALL contract requirements met
+- [ ] 6.6 ALL contract requirements met (AGENT VERIFIED)
 
 ### Phase 7: Remediation (if Phase 6 failed)
 - [ ] 7.1 Gaps identified from Phase 6 failures

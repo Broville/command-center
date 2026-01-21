@@ -1,0 +1,100 @@
+# Homelab Maintenance Issue Schema
+# This YAML schema is populated by the agent with evidence data.
+# The homelab-maintenance-issue.py script consumes this to create/update Gitea issues.
+
+# Issue Metadata
+title: "[Maintenance] YYYY-MM-DD - Homelab"  # Will be auto-generated if not provided
+date: ""  # ISO format: YYYY-MM-DD, defaults to today
+
+# Overall Status
+status:
+  overall: "RED"  # RED | YELLOW | GREEN
+  last_updated: ""  # ISO timestamp, auto-filled
+  source_report: ""  # e.g., reports/status-report-2026-01-21.md
+  assigned_to: "gitea_admin"
+
+# Cluster Identity
+cluster:
+  k3s_version: ""
+  node_count: 0
+  argocd_apps_total: 0
+  ceph_status: ""  # HEALTH_OK | HEALTH_WARN | HEALTH_ERR
+
+# Layer Health Evidence
+layers:
+  metal:
+    status: "GREEN"  # RED | YELLOW | GREEN
+    summary: ""  # e.g., "3/3 nodes Ready"
+  network:
+    status: "GREEN"
+    summary: ""  # e.g., "VLANs reachable, latency 5ms, OPNSense up"
+  storage_nas:
+    status: "GREEN"
+    summary: ""  # e.g., "Unraid reachable, shares accessible"
+  system:
+    status: "GREEN"
+    summary: ""  # e.g., "Ceph HEALTH_OK, kube-system: 12 pods"
+  platform:
+    status: "GREEN"
+    summary: ""  # e.g., "ArgoCD: 25/25 Synced+Healthy"
+  apps:
+    status: "GREEN"
+    summary: ""  # e.g., "0 non-running pods"
+
+# Non-Running Pods (if any)
+non_running_pods: []
+  # - namespace: "emby"
+  #   pod: "emby-abc123"
+  #   status: "CrashLoopBackOff"
+  #   age: "2h"
+
+# Repo Inventory
+repo_inventory:
+  open_renovate_prs: []  # List of PR numbers
+  open_user_prs: []      # List of PR numbers
+  open_issues: []        # List of issue numbers (excluding maintenance)
+
+# Proposed Changes (Spec)
+proposed_changes: []
+  # - id: "C1"
+  #   type: "Fix"           # Fix | PR | Upgrade | Config
+  #   layer: "System"       # Metal | Network | Storage | System | Platform | Apps
+  #   priority: "P0"        # P0 | P1 | P2 | P3
+  #   impact: "HIGH"        # HIGH | MEDIUM | LOW
+  #   downtime: "None"      # None | Xmin | Window
+  #   summary: "Archive Ceph crashes"
+  #   dependencies: []      # List of change IDs this depends on
+
+# Action Items (Tasks)
+# Each item becomes a checkbox in the issue
+action_items: []
+  # - id: "A1"
+  #   priority: "P0"
+  #   phase: "A"            # A=Preflight, B=Critical, C=High, D=Medium, E=Low, F=Final
+  #   layer: ""             # Optional: Metal | Network | Storage | System | Platform | Apps
+  #   title: "Preflight: Verify access"
+  #   goal: "Confirm all access methods work"
+  #   commands: "kubectl cluster-info"
+  #   expected: "All commands succeed"
+  #   if_fails: "Document which access failed"
+  #   rollback: "N/A"
+
+# Change Log (for updates)
+change_log: []
+  # - timestamp: "2026-01-21 10:00"
+  #   phase: "A"
+  #   item: "A1"
+  #   action: "Verified access"
+  #   result: "All passed"
+  #   status_after: "GREEN"
+
+# Closure (filled when complete)
+closure:
+  status: ""              # RESOLVED | ""
+  started: ""
+  completed: ""
+  duration: ""
+  resolved_by: ""
+  final_state: {}         # Same structure as layers
+  actions_summary: ""
+  lessons_learned: []
