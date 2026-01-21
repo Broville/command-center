@@ -1,6 +1,6 @@
 [project]
 name = "command-center"
-version = "1.1.0"
+version = "1.2.0"
 description = "Command-Center: Global workflow commands for AI coding assistants. Bootstrap /do-the-thing, /commit, and /init to Opencode and Antigravity."
 requires-python = ">=3.11"
 dependencies = [

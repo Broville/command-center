@@ -42,10 +42,14 @@ app = typer.Typer(
 # Global locations
 OPENCODE_COMMANDS = Path.home() / ".config" / "opencode" / "command"
 OPENCODE_RULES = Path.home() / ".config" / "opencode" / "rules"
+OPENCODE_SCRIPTS = Path.home() / ".config" / "opencode" / "scripts"
+OPENCODE_TEMPLATES = Path.home() / ".config" / "opencode" / "templates"
 OPENCODE_SUPPORT = Path.home() / ".config" / "opencode" / ".do-the-thing"
 OPENCODE_AGENTS_MD = Path.home() / ".config" / "opencode" / "AGENTS.md"
 ANTIGRAVITY_COMMANDS = Path.home() / ".gemini" / "antigravity" / "global_workflows"
-ANTIGRAVITY_RULES = Path.home() / ".gemini" / "rules"  # Per infra-setup: ~/.gemini/rules/
+ANTIGRAVITY_RULES = Path.home() / ".gemini" / "rules"
+ANTIGRAVITY_SCRIPTS = Path.home() / ".gemini" / "scripts"
+ANTIGRAVITY_TEMPLATES = Path.home() / ".gemini" / "templates"
 ANTIGRAVITY_SUPPORT = Path.home() / ".gemini" / "antigravity" / ".do-the-thing"
 
 # Source files (relative to package assets directory)
@@ -66,6 +70,18 @@ RULE_FILES = [
     "HOMELAB_cluster.md",
     "HOMELAB_access.md",
     "homelab-reference.md",
+]
+# Scripts are executable helper scripts
+SCRIPT_FILES = [
+    "homelab-maintenance-issue.py",
+    "homelab-network-check.sh",
+    "homelab-nas-check.sh",
+    "network-test-pod.yaml",
+]
+# Templates are structured data files
+TEMPLATE_FILES = [
+    "homelab-maintenance-issue.schema.yaml",
+    "homelab-maintenance-issue-template.md",
 ]
 SUPPORT_DIR = ".do-the-thing"
 
@@ -126,6 +142,8 @@ def bootstrap_to_target(
     name: str,
     commands_dir: Path,
     rules_dir: Path,
+    scripts_dir: Path,
+    templates_dir: Path,
     support_dir: Path,
     assets_dir: Path,
     dry_run: bool = False,
@@ -134,10 +152,14 @@ def bootstrap_to_target(
     success = True
     cmd_count = 0
     rule_count = 0
+    script_count = 0
+    template_count = 0
 
     console.print(f"\n[bold cyan]Setting up {name}[/bold cyan]")
     console.print(f"  [dim]Commands: {commands_dir}[/dim]")
     console.print(f"  [dim]Rules: {rules_dir}[/dim]")
+    console.print(f"  [dim]Scripts: {scripts_dir}[/dim]")
+    console.print(f"  [dim]Templates: {templates_dir}[/dim]")
 
     # Copy command files (from assets/commands/)
     console.print("\n  [bold]Commands:[/bold]")
@@ -165,6 +187,32 @@ def bootstrap_to_target(
                 success = False
         else:
             console.print(f"  [warning]![/warning] Asset missing: rules/{filename}")
+
+    # Copy script files (from assets/scripts/)
+    console.print("\n  [bold]Scripts:[/bold]")
+    scripts_src = assets_dir / "scripts"
+    for filename in SCRIPT_FILES:
+        src = scripts_src / filename
+        if src.exists():
+            if copy_file(src, scripts_dir / filename, dry_run):
+                script_count += 1
+            else:
+                success = False
+        else:
+            console.print(f"  [warning]![/warning] Asset missing: scripts/{filename}")
+
+    # Copy template files (from assets/templates/)
+    console.print("\n  [bold]Templates:[/bold]")
+    templates_src = assets_dir / "templates"
+    for filename in TEMPLATE_FILES:
+        src = templates_src / filename
+        if src.exists():
+            if copy_file(src, templates_dir / filename, dry_run):
+                template_count += 1
+            else:
+                success = False
+        else:
+            console.print(f"  [warning]![/warning] Asset missing: templates/{filename}")
 
     # Copy support directory
     console.print("\n  [bold]Support:[/bold]")
@@ -311,7 +359,7 @@ def print_banner():
 \____/\____/_/ /_/ /_/_/ /_/ /_/\__,_/_/ /_/\__,_/      \____/\___/_/ /_/\__/\___/_/     
                                                                                          
     """
-    console.print(Panel.fit(banner_text, border_style="cyan", title="v1.1.0", subtitle="Global Workflow Bootstrapper"))
+    console.print(Panel.fit(banner_text, border_style="cyan", title="v1.2.0", subtitle="Global Workflow Bootstrapper"))
 
 
 def run_wizard(dry_run: bool):
@@ -381,7 +429,7 @@ def run_wizard(dry_run: bool):
         
         if "opencode" in targets:
             task = progress.add_task("Bootstrapping Opencode...", total=None)
-            if not bootstrap_to_target("Opencode", OPENCODE_COMMANDS, OPENCODE_RULES, OPENCODE_SUPPORT, assets_dir, dry_run):
+            if not bootstrap_to_target("Opencode", OPENCODE_COMMANDS, OPENCODE_RULES, OPENCODE_SCRIPTS, OPENCODE_TEMPLATES, OPENCODE_SUPPORT, assets_dir, dry_run):
                 success_all = False
             time.sleep(0.5) # UX pacing
             progress.remove_task(task)
@@ -389,7 +437,7 @@ def run_wizard(dry_run: bool):
 
         if "antigravity" in targets:
             task = progress.add_task("Bootstrapping Antigravity...", total=None)
-            if not bootstrap_to_target("Antigravity", ANTIGRAVITY_COMMANDS, ANTIGRAVITY_RULES, ANTIGRAVITY_SUPPORT, assets_dir, dry_run):
+            if not bootstrap_to_target("Antigravity", ANTIGRAVITY_COMMANDS, ANTIGRAVITY_RULES, ANTIGRAVITY_SCRIPTS, ANTIGRAVITY_TEMPLATES, ANTIGRAVITY_SUPPORT, assets_dir, dry_run):
                 success_all = False
             time.sleep(0.5) # UX pacing
             progress.remove_task(task)
@@ -465,10 +513,10 @@ def init(
         raise typer.Exit(1)
 
     if target_opencode:
-        bootstrap_to_target("Opencode", OPENCODE_COMMANDS, OPENCODE_RULES, OPENCODE_SUPPORT, assets_dir, dry_run)
+        bootstrap_to_target("Opencode", OPENCODE_COMMANDS, OPENCODE_RULES, OPENCODE_SCRIPTS, OPENCODE_TEMPLATES, OPENCODE_SUPPORT, assets_dir, dry_run)
 
     if target_antigravity:
-        bootstrap_to_target("Antigravity", ANTIGRAVITY_COMMANDS, ANTIGRAVITY_RULES, ANTIGRAVITY_SUPPORT, assets_dir, dry_run)
+        bootstrap_to_target("Antigravity", ANTIGRAVITY_COMMANDS, ANTIGRAVITY_RULES, ANTIGRAVITY_SCRIPTS, ANTIGRAVITY_TEMPLATES, ANTIGRAVITY_SUPPORT, assets_dir, dry_run)
     
     console.print("[success]Done.[/success]")
 
