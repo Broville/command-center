@@ -1427,6 +1427,5 @@ These rules are NON-NEGOTIABLE:
 3. **UPDATE the issue frequently for visibility**
 4. **IF in doubt, PAUSE and ASSESS**
 5. **USE `homelab-recon.md` to validate - this workflow complements it**
-6. **Human escalation is a valid outcome for complex issues**
-7. **NEVER proceed without GREEN validation between major changes**
-8. **ALWAYS document what was done with timestamps**
+6. **NEVER proceed without GREEN validation between changes**
+7. **ALWAYS document what was done with timestamps**

@@ -486,3 +486,18 @@ COMPLETE all items before considering workflow finished:
 
 > [!CAUTION]
 > **DO NOT STOP UNTIL ALL CRITERIA ARE MET.**
+
+---
+
+## Mandatory Rules
+
+These rules are NON-NEGOTIABLE:
+
+1. **EXECUTE evidence capture EXHAUSTIVELY - no partial snapshots**
+2. **ALWAYS EDIT the issue body, NEVER add comments**
+3. **VALIDATE ALL layers before considering recon complete**
+4. **ZERO tolerance for incomplete maintenance issues**
+5. **IF any Phase 6 audit check fails, RETURN to Phase 1**
+6. **NEVER proceed to handoff without a contract-complete maintenance issue**
+7. **ALWAYS document findings with timestamps and evidence**
+
