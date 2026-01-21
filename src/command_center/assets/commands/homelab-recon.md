@@ -141,11 +141,13 @@ curl -s "https://git.eaglepass.io/api/v1/user" -H "Authorization: token $GITEA_T
 **Preferred Method: Script-Based (Recommended)**
 
 ```bash
-# Run comprehensive recon script
-~/homelab/scripts/recon.sh
+# Run comprehensive recon script (SELECT ONE)
+~/.gemini/scripts/recon.sh           # Antigravity
+~/.config/opencode/scripts/recon.sh  # Opencode
 
-# Or with JSON output for parsing
-~/homelab/scripts/recon.sh --json
+# Or with JSON output for parsing (SELECT ONE)
+~/.gemini/scripts/recon.sh --json              # Antigravity
+~/.config/opencode/scripts/recon.sh --json     # Opencode
 ```
 
 **Alternative: Manual Commands**
@@ -174,11 +176,13 @@ kubectl get events -A --sort-by=.lastTimestamp | tail -200
 **Preferred Method: Script-Based (Recommended)**
 
 ```bash
-# Run network health check script
-~/homelab/scripts/homelab-network-check.sh --verbose
+# Run network health check script (SELECT ONE)
+~/.gemini/scripts/homelab-network-check.sh --verbose           # Antigravity
+~/.config/opencode/scripts/homelab-network-check.sh --verbose  # Opencode
 
-# Or with JSON output for parsing
-~/homelab/scripts/homelab-network-check.sh --json
+# Or with JSON output for parsing (SELECT ONE)
+~/.gemini/scripts/homelab-network-check.sh --json              # Antigravity
+~/.config/opencode/scripts/homelab-network-check.sh --json     # Opencode
 ```
 
 **Exit Codes**: 0=GREEN, 1=RED, 2=YELLOW
@@ -186,8 +190,9 @@ kubectl get events -A --sort-by=.lastTimestamp | tail -200
 **Alternative: In-Cluster Testing (Pod-Based)**
 
 ```bash
-# Deploy temporary network test pod
-kubectl apply -f network-test-pod.yaml
+# Deploy temporary network test pod (SELECT ONE)
+kubectl apply -f ~/.gemini/scripts/network-test-pod.yaml           # Antigravity
+kubectl apply -f ~/.config/opencode/scripts/network-test-pod.yaml  # Opencode
 
 # Wait for completion and capture output
 kubectl wait --for=condition=Ready pod/network-test-pod --timeout=60s || true
@@ -200,11 +205,13 @@ kubectl delete pod network-test-pod --ignore-not-found
 **Method 2: External Network Testing (Script-Based)**
 
 ```bash
-# Run comprehensive network health check
-homelab-network-check.sh --verbose
+# Run comprehensive network health check (SELECT ONE)
+~/.gemini/scripts/homelab-network-check.sh --verbose           # Antigravity
+~/.config/opencode/scripts/homelab-network-check.sh --verbose  # Opencode
 
-# Or with JSON output for parsing
-homelab-network-check.sh --json
+# Or with JSON output for parsing (SELECT ONE)
+~/.gemini/scripts/homelab-network-check.sh --json              # Antigravity
+~/.config/opencode/scripts/homelab-network-check.sh --json     # Opencode
 ```
 
 **GREEN Criteria for Network Layer**:
@@ -221,11 +228,13 @@ homelab-network-check.sh --json
 **Preferred Method: Script-Based (Recommended)**
 
 ```bash
-# Run NAS health check script
-~/homelab/scripts/homelab-nas-check.sh --verbose
+# Run NAS health check script (SELECT ONE)
+~/.gemini/scripts/homelab-nas-check.sh --verbose           # Antigravity
+~/.config/opencode/scripts/homelab-nas-check.sh --verbose  # Opencode
 
-# Or with JSON output for parsing
-~/homelab/scripts/homelab-nas-check.sh --json
+# Or with JSON output for parsing (SELECT ONE)
+~/.gemini/scripts/homelab-nas-check.sh --json              # Antigravity
+~/.config/opencode/scripts/homelab-nas-check.sh --json     # Opencode
 ```
 
 **Exit Codes**: 0=GREEN, 1=RED, 2=YELLOW
@@ -447,9 +456,10 @@ USE MCP tool: `gitea_list_repo_issues` with `state: open` and filter for label `
 2. **EXECUTE** the script to update the issue
 
 ```bash
-# Populate YAML with evidence data, then:
+# Populate YAML with evidence data, then (SELECT ONE):
 source ~/.config/gitea/.env
-~/homelab/scripts/homelab-maintenance-issue.py --input /tmp/maintenance-data.yaml
+python3 ~/.gemini/scripts/homelab-maintenance-issue.py --input /tmp/maintenance-data.yaml           # Antigravity
+python3 ~/.config/opencode/scripts/homelab-maintenance-issue.py --input /tmp/maintenance-data.yaml  # Opencode
 ```
 
 The script automatically:
@@ -471,9 +481,10 @@ The script automatically:
 2. **EXECUTE** the script to create the issue
 
 ```bash
-# Populate YAML with evidence data, then:
+# Populate YAML with evidence data, then (SELECT ONE):
 source ~/.config/gitea/.env
-~/homelab/scripts/homelab-maintenance-issue.py --input /tmp/maintenance-data.yaml
+python3 ~/.gemini/scripts/homelab-maintenance-issue.py --input /tmp/maintenance-data.yaml           # Antigravity
+python3 ~/.config/opencode/scripts/homelab-maintenance-issue.py --input /tmp/maintenance-data.yaml  # Opencode
 ```
 
 The script automatically:
@@ -482,7 +493,9 @@ The script automatically:
 - Adds the `maintenance` label (ID: 10)
 - Assigns to `gitea_admin`
 
-**YAML Schema Location**: `templates/homelab-maintenance-issue.schema.yaml`
+**YAML Schema Location** (SELECT ONE):
+- Antigravity: `~/.gemini/scripts/homelab-maintenance-issue.schema.yaml`
+- Opencode: `~/.config/opencode/scripts/homelab-maintenance-issue.schema.yaml`
 
 **Alternative: MCP Tool**
 
@@ -492,8 +505,9 @@ The script automatically:
 
 ### 5.5 Maintenance Issue Structure Requirements
 
-> [!IMPORTANT]
-> The maintenance issue MUST follow the structure defined in `homelab-maintenance-issue-template.md`.
+> The maintenance issue MUST follow the structure defined in:
+> - Antigravity: `~/.gemini/scripts/homelab-maintenance-issue-template.md`
+> - Opencode: `~/.config/opencode/scripts/homelab-maintenance-issue-template.md`
 > This template is the contract - any deviation is a workflow failure.
 
 **Required Sections** (in order):

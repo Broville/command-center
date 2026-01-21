@@ -73,6 +73,7 @@ RULE_FILES = [
 ]
 # Scripts are executable helper scripts
 SCRIPT_FILES = [
+    "recon.sh",
     "homelab-maintenance-issue.py",
     "homelab-network-check.sh",
     "homelab-nas-check.sh",
