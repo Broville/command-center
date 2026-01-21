@@ -500,8 +500,10 @@ kubectl exec -n rook-ceph deploy/rook-ceph-tools -- ceph health
 
 | Layer | Quick Check Command | GREEN Criteria |
 |-------|---------------------|----------------|
-| Metal | `kubectl get nodes` | All nodes Ready |
-| System | `ceph health` + `kubectl get pods -n kube-system` | HEALTH_OK, all pods Running |
+| **Metal** | `kubectl get nodes` | All nodes Ready |
+| **Network** | `~/.gemini/scripts/homelab-network-check.sh` | All VLANs reachable |
+| **Storage (NAS)** | `~/.gemini/scripts/homelab-nas-check.sh` | Unraid reachable |
+| **System** | `ceph health` + `kubectl get pods -n kube-system` | HEALTH_OK, all pods Running |
 | Platform | `kubectl get applications -n argocd` | All Synced & Healthy |
 | Apps | `kubectl get pods --all-namespaces \| grep -v Running` | No failed pods |
 

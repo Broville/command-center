@@ -285,6 +285,10 @@ EXECUTE these commands to diagnose network issues:
 # CHECK Cilium status
 cilium status
 
+# RUN Network Health Check Script (Recommended) -- SELECT ONE:
+~/.gemini/scripts/homelab-network-check.sh --verbose           # Antigravity
+~/.config/opencode/scripts/homelab-network-check.sh --verbose  # Opencode
+
 # TEST connectivity
 cilium connectivity test
 
@@ -305,6 +309,10 @@ EXECUTE these commands to diagnose storage issues:
 ```bash
 # CHECK Ceph cluster health
 kubectl get cephcluster -n rook-ceph
+
+# RUN NAS Health Check Script (Recommended) -- SELECT ONE:
+~/.gemini/scripts/homelab-nas-check.sh --verbose           # Antigravity
+~/.config/opencode/scripts/homelab-nas-check.sh --verbose  # Opencode
 
 # VIEW PVC status
 kubectl get pvc -A
@@ -449,8 +457,8 @@ kubectl get events -A --field-selector type=Warning --sort-by='.lastTimestamp' |
 | Layer | Check | GREEN Criteria | RED Criteria |
 |-------|-------|----------------|--------------|
 | **Metal** | `kubectl get nodes` | All `Ready` | Any `NotReady` |
-| **Network** | `homelab-network-check.sh` | All VLANs reachable, latency <50ms | Unreachable or >100ms |
-| **Storage (NAS)** | `homelab-nas-check.sh` | Unraid reachable, shares accessible | Unreachable |
+| **Network** | `homelab-network-check.sh` (see below) | All VLANs reachable, latency <50ms | Unreachable or >100ms |
+| **Storage (NAS)** | `homelab-nas-check.sh` (see below) | Unraid reachable, shares accessible | Unreachable |
 | **System** | `ceph health` | `HEALTH_OK` | `HEALTH_WARN` or `HEALTH_ERR` |
 | **System** | kube-system pods | All `Running` | Any `CrashLoopBackOff`, `Error` |
 | **Platform** | ArgoCD apps | All `Synced` + `Healthy` | Any `OutOfSync` or `Degraded` |
