@@ -4,7 +4,8 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'src/command_center/assets/**'
+      - 'src/command_center/**'
+      - 'pyproject.toml'
       - 'scripts/**'
       - '.github/workflows/**'
   workflow_dispatch:
@@ -21,6 +22,14 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up PDM
+        uses: pdm-project/setup-pdm@v3
+        with:
+          python-version: '3.11'
+      - name: Build Python Package
+        run: |
+          pip install build
+          python -m build
       - name: Get latest tag
         id: get_tag
         run: |

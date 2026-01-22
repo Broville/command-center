@@ -24,6 +24,13 @@ for pkg in .genreleases/command-center-*-"$VERSION".zip; do
   fi
 done
 
+# Add Python build artifacts
+for pkg in dist/*; do
+  if [[ -f "$pkg" ]]; then
+    PACKAGES+=("$pkg")
+  fi
+done
+
 if [[ ${#PACKAGES[@]} -eq 0 ]]; then
   echo "Error: No packages found in .genreleases/ for version $VERSION" >&2
   echo "Run create-release-packages.sh first" >&2
