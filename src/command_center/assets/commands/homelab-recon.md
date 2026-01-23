@@ -241,11 +241,10 @@ kubectl delete pod network-test-pod --ignore-not-found
 
 **Alternative: Manual Verification**
 
-```bash
-# Test NAS reachability
-ping -c 3 10.0.40.3
+> **WARNING**: NAS (Unraid) blocks ICMP. Do NOT use `ping`. Use TCP port checks instead.
 
-# Test SMB ports
+```bash
+# Test NAS reachability via SMB (ICMP blocked!)
 nc -zv 10.0.40.3 445
 
 # Test NFS ports (if applicable)
@@ -258,7 +257,6 @@ curl -s -o /dev/null -w "%{http_code}" http://10.0.40.3
 **GREEN Criteria for Storage/NAS Layer**:
 | Check | GREEN | YELLOW | RED |
 |-------|-------|--------|-----|
-| Ping | Reachable, <10ms | Reachable, 10-50ms | Unreachable |
 | SMB (445) | Port open | - | Port closed |
 | NFS (2049) | Port open | - | Port closed |
 | Web Interface | Accessible | Auth required | Unreachable |

@@ -1,2 +1,3 @@
 .genreleases/
 release_notes.md
+__pycache__
