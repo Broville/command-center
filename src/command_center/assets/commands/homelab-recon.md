@@ -131,9 +131,31 @@ kubectl cluster-info
 kubectl version --short
 
 ssh -o ConnectTimeout=5 brimdor@10.0.20.10 "echo 'Controller accessible'"
+```
 
+> [!IMPORTANT]
+> **SSH vs API Access**: SSH keys authenticate Git operations (clone/push/pull) but **CANNOT** query PRs/issues.
+> The Gitea REST API requires an API token for programmatic access to PRs, issues, and other non-Git features.
+
+**Gitea API Token Validation:**
+
+```bash
+# Bash/Zsh
 source ~/.config/gitea/.env
-curl -s "https://git.eaglepass.io/api/v1/user" -H "Authorization: token $GITEA_TOKEN" | jq -r '.login'
+
+# Fish shell alternative
+set -x GITEA_TOKEN (cat ~/.config/gitea/.env | grep GITEA_TOKEN | cut -d= -f2)
+
+# Validate token is actually set
+if [ -z "$GITEA_TOKEN" ]; then
+    echo "ERROR: GITEA_TOKEN is not set."
+    echo "Generate one at: https://git.eaglepass.io/user/settings/applications"
+    echo "Add to ~/.config/gitea/.env: GITEA_TOKEN=your_token_here"
+    exit 1
+fi
+
+# Verify token works
+curl -sf "https://git.eaglepass.io/api/v1/user" -H "Authorization: token $GITEA_TOKEN" | jq -r '.login'
 ```
 
 ### 1.3 Capture Baseline Health Snapshot
@@ -335,15 +357,52 @@ For EACH non-running pod found, EXECUTE and CAPTURE:
 
 ### 1.10 Capture Repo Evidence (Issues + PRs)
 
-EXECUTE repo evidence capture using these methods:
+> [!IMPORTANT]
+> **API Token Required**: SSH access only works for Git operations (clone/push/pull).
+> Querying PRs and issues requires the Gitea REST API with `GITEA_TOKEN`.
 
-**Preferred Method**: USE MCP tools (`gitea_list_repo_pull_requests`, `gitea_list_repo_issues`)
-**Fallback Method**: USE Gitea API (only if MCP unavailable)
+EXECUTE repo evidence capture using the Gitea REST API:
 
-CAPTURE for each category:
-- Open PRs (Renovate vs user)
-- Open issues (excluding `maintenance`)
-- Mergeable vs conflicted PRs
+#### 1.10.1 List Open Pull Requests
+
+```bash
+# Load token (choose your shell)
+source ~/.config/gitea/.env                                                    # Bash/Zsh
+set -x GITEA_TOKEN (cat ~/.config/gitea/.env | grep GITEA_TOKEN | cut -d= -f2) # Fish
+
+# Get all open PRs in ops/homelab
+curl -s "https://git.eaglepass.io/api/v1/repos/ops/homelab/pulls?state=open" \
+  -H "Authorization: token $GITEA_TOKEN" | \
+  jq -r '.[] | "PR #\(.number): \(.title) by \(.user.login) (created: \(.created_at | split("T")[0]))"'
+```
+
+#### 1.10.2 List Open Issues (excluding maintenance label)
+
+```bash
+# Get all open issues
+curl -s "https://git.eaglepass.io/api/v1/repos/ops/homelab/issues?state=open" \
+  -H "Authorization: token $GITEA_TOKEN" | \
+  jq -r '.[] | select(.labels | map(.name) | index("maintenance") | not) | "Issue #\(.number): \(.title)"'
+```
+
+#### 1.10.3 Detailed PR Data for Maintenance Issue
+
+For each open PR, CAPTURE detailed information:
+
+```bash
+curl -s "https://git.eaglepass.io/api/v1/repos/ops/homelab/pulls?state=open" \
+  -H "Authorization: token $GITEA_TOKEN" | \
+  jq '[.[] | {
+    number: .number,
+    title: .title,
+    author: .user.login,
+    created_at: .created_at,
+    mergeable: .mergeable,
+    base: .base.ref,
+    head: .head.ref,
+    labels: [.labels[]?.name]
+  }]'
+```
 
 DOCUMENT minimum fields per PR:
 - PR number, title, author, created_at (age)
@@ -594,32 +653,37 @@ When Phase 7 (Remediation) completes successfully (or was skipped because Phase 
 
 ---
 
-## MCP Tool Integration (Preferred Method)
+## MCP Tool Integration
 
-USE MCP tools for all repo interactions when available:
+### Available MCP Servers
 
-- `gitea_list_repo_issues` - LIST open issues
-- `gitea_list_repo_pull_requests` - LIST open PRs
-- `gitea_create_issue` - CREATE new maintenance issue
-- `gitea_edit_issue` - UPDATE existing issue body
-- `gitea_add_issue_labels` - ADD labels to issue
-- `gitea_search_repos` - SEARCH repositories (if needed)
+| Server | Purpose | Example Tools |
+|--------|---------|---------------|
+| **kubernetes** | Cluster operations | `mcp_kubernetes_kubectl_get`, `mcp_kubernetes_kubectl_apply` |
+| **shell** | Shell command execution | `mcp_shell_shell_exec` |
 
----
+### Gitea Access (REST API)
 
-## Gitea API Fallback (Emergency Only)
+> [!NOTE]
+> No Gitea MCP server is currently configured. Use the REST API directly with `curl`.
 
-> [!WARNING]
-> USE only if MCP tools are unavailable.
+| Operation | Method | Endpoint |
+|-----------|--------|----------|
+| List PRs | GET | `/api/v1/repos/ops/homelab/pulls?state=open` |
+| List Issues | GET | `/api/v1/repos/ops/homelab/issues?state=open` |
+| Get Issue | GET | `/api/v1/repos/ops/homelab/issues/{index}` |
+| Update Issue | PATCH | `/api/v1/repos/ops/homelab/issues/{index}` |
+| Create Issue | POST | `/api/v1/repos/ops/homelab/issues` |
+| Add Labels | POST | `/api/v1/repos/ops/homelab/issues/{index}/labels` |
 
-### Token Location
+**All requests require header**: `Authorization: token $GITEA_TOKEN`
+
+**Token Location**:
 ```bash
-~/.config/gitea/.env        # bash/zsh
-~/.config/gitea/gitea.fish  # fish
+~/.config/gitea/.env        # Format: GITEA_TOKEN=your_token_here
 ```
 
-### API Base URL
-`https://git.eaglepass.io/api/v1`
+**API Base URL**: `https://git.eaglepass.io/api/v1`
 
 ---
 
