@@ -207,7 +207,7 @@ kubectl get events -A --sort-by=.lastTimestamp | tail -200
 ~/.config/opencode/scripts/homelab-network-check.sh --json     # Opencode
 ```
 
-**Exit Codes**: 0=GREEN, 1=RED, 2=YELLOW
+**Exit Codes**: 0=GREEN, 1=YELLOW, 2=RED
 
 **Alternative: In-Cluster Testing (Pod-Based)**
 
@@ -259,7 +259,7 @@ kubectl delete pod network-test-pod --ignore-not-found
 ~/.config/opencode/scripts/homelab-nas-check.sh --json     # Opencode
 ```
 
-**Exit Codes**: 0=GREEN, 1=RED, 2=YELLOW
+**Exit Codes**: 0=GREEN, 1=YELLOW, 2=RED
 
 **Alternative: Manual Verification**
 
@@ -778,4 +778,3 @@ These rules are NON-NEGOTIABLE:
 5. **IF any Phase 6 audit check fails, RETURN to Phase 1**
 6. **NEVER proceed to handoff without a contract-complete maintenance issue**
 7. **ALWAYS document findings with timestamps and evidence**
-
