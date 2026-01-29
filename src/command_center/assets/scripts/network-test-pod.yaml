@@ -93,39 +93,59 @@ spec:
       
       # Test OPNSense
       if ping -c 2 -W 2 10.0.0.1 > /dev/null 2>&1; then
-        check_result "OPNSENSE" "GREEN" "Reachable"
+        check_result "OPNSENSE" "GREEN" "Reachable (ICMP)"
       else
-        check_result "OPNSENSE" "RED" "Unreachable"
+        if nc -z -w 5 10.0.0.1 443 2>/dev/null; then
+          check_result "OPNSENSE" "GREEN" "Reachable (ICMP blocked; TCP 443 open)"
+        else
+          check_result "OPNSENSE" "RED" "Unreachable (no ICMP; TCP 443 closed)"
+        fi
       fi
       
       # Test NAS
-      if ping -c 2 -W 2 10.0.40.3 > /dev/null 2>&1; then
-        check_result "NAS" "GREEN" "Reachable"
+      # NAS (Unraid) commonly blocks ICMP - use TCP checks.
+      if nc -z -w 5 10.0.40.3 445 2>/dev/null; then
+        check_result "NAS" "GREEN" "Reachable (TCP 445 open)"
+      elif nc -z -w 5 10.0.40.3 2049 2>/dev/null; then
+        check_result "NAS" "GREEN" "Reachable (TCP 2049 open)"
+      elif wget -q -O /dev/null --timeout=5 http://10.0.40.3 2>/dev/null; then
+        check_result "NAS" "GREEN" "Reachable (HTTP)"
       else
-        check_result "NAS" "RED" "Unreachable"
+        check_result "NAS" "RED" "Unreachable (TCP 445/2049 + HTTP failed)"
       fi
       
       # Test Controller
       if ping -c 2 -W 2 10.0.20.10 > /dev/null 2>&1; then
-        check_result "CONTROLLER" "GREEN" "Reachable"
+        check_result "CONTROLLER" "GREEN" "Reachable (ICMP)"
       else
-        check_result "CONTROLLER" "RED" "Unreachable"
+        if nc -z -w 5 10.0.20.10 22 2>/dev/null; then
+          check_result "CONTROLLER" "GREEN" "Reachable (ICMP blocked; TCP 22 open)"
+        else
+          check_result "CONTROLLER" "RED" "Unreachable (no ICMP; TCP 22 closed)"
+        fi
       fi
       
       echo ""
       echo ">> Testing External Connectivity..."
       
-      # Test internet (via ping)
-      if ping -c 2 -W 2 1.1.1.1 > /dev/null 2>&1; then
-        check_result "CLOUDFLARE" "GREEN" "1.1.1.1 reachable"
+      # Test internet (prefer DNS + HTTPS over ICMP)
+      if nslookup google.com 1.1.1.1 > /dev/null 2>&1; then
+        check_result "CLOUDFLARE_DNS" "GREEN" "google.com resolves via 1.1.1.1"
       else
-        check_result "CLOUDFLARE" "RED" "1.1.1.1 unreachable"
+        check_result "CLOUDFLARE_DNS" "RED" "google.com does not resolve via 1.1.1.1"
       fi
-      
-      if ping -c 2 -W 2 8.8.8.8 > /dev/null 2>&1; then
-        check_result "GOOGLE_DNS" "GREEN" "8.8.8.8 reachable"
+
+      if nslookup google.com 8.8.8.8 > /dev/null 2>&1; then
+        check_result "GOOGLE_DNS" "GREEN" "google.com resolves via 8.8.8.8"
       else
-        check_result "GOOGLE_DNS" "RED" "8.8.8.8 unreachable"
+        check_result "GOOGLE_DNS" "RED" "google.com does not resolve via 8.8.8.8"
+      fi
+
+      if wget -q -O /dev/null --timeout=5 https://google.com 2>/dev/null || \
+         wget -q -O /dev/null --timeout=5 --no-check-certificate https://google.com 2>/dev/null; then
+        check_result "HTTPS_EGRESS" "GREEN" "https://google.com reachable"
+      else
+        check_result "HTTPS_EGRESS" "RED" "Cannot reach https://google.com"
       fi
       
       echo ""

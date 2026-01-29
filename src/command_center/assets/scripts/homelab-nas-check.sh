@@ -86,14 +86,35 @@ add_result() {
 # Test NAS reachability
 test_reachability() {
     log "Testing NAS reachability..."
-    
-    if ping -c 3 -W 2 "$UNRAID_IP" &>/dev/null; then
-        local latency=$(ping -c 3 -W 2 "$UNRAID_IP" | grep -oP 'avg[^=]*=\s*\K[0-9.]+' | head -1)
-        add_result "NAS_PING" "GREEN" "Reachable (${latency}ms)" "$latency"
-    else
-        add_result "NAS_PING" "RED" "NAS unreachable at $UNRAID_IP"
-        return 1
+
+    # Unraid commonly blocks ICMP. Establish reachability using TCP instead.
+    local ports=(
+        "445:SMB"
+        "2049:NFS"
+        "80:HTTP"
+        "443:HTTPS"
+    )
+
+    local reachable=false
+    local reachable_via=""
+
+    for port_info in "${ports[@]}"; do
+        local port="${port_info%%:*}"
+        local service="${port_info##*:}"
+        if timeout 5 bash -c "echo >/dev/tcp/$UNRAID_IP/$port" 2>/dev/null; then
+            reachable=true
+            reachable_via="$service:$port"
+            break
+        fi
+    done
+
+    if [[ "$reachable" == "true" ]]; then
+        add_result "NAS_REACHABLE" "GREEN" "Reachable via TCP ($reachable_via)" "$reachable_via"
+        return 0
     fi
+
+    add_result "NAS_REACHABLE" "RED" "NAS unreachable (TCP ports closed/filtered) at $UNRAID_IP"
+    return 1
 }
 
 # Test web interface
