@@ -1,0 +1,44 @@
+# Homelab Troubleshoot Report Schema
+# This schema defines the data structure for the completion report.
+
+# Session Status
+session:
+  status: "GREEN" # Must be GREEN to complete
+  layer_details:
+    metal:
+      status: "GREEN"
+      details: "" # e.g., "All 10 nodes Ready"
+    network:
+      status: "GREEN"
+      details: "" # e.g., "All VLANs reachable"
+    storage:
+      status: "GREEN"
+      details: "" # e.g., "Unraid accessible"
+    system:
+      status: "GREEN"
+      details: "" # e.g., "Ceph HEALTH_OK"
+    platform:
+      status: "GREEN"
+      details: "" # e.g., "All ArgoCD apps Synced/Healthy"
+    apps:
+      status: "GREEN"
+      details: "" # e.g., "All pods Running"
+
+# Final Verification (Before/After)
+verification: []
+  # - component: "Node: growlithe"
+  #   before: "NotReady (DiskPressure)"
+  #   after: "Ready (Green)"
+
+# What Was Fixed
+fixes: []
+  # - issue: "Kured scheduling"
+  #   description: "Added tolerations to daemonset"
+
+# Commits Pushed
+commits: []
+  # - hash: "abc1234"
+  #   message: "fix(kured): add tolerations"
+
+# Final Summary
+summary: "" # e.g., "The homelab is now fully operational with updated kured config."

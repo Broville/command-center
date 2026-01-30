@@ -279,6 +279,18 @@ Or USE MCP tools:
 - USE `gitea_get_pull_request_by_index` to check PR status
 - MERGE via API if tools don't support direct merge
 
+**VERIFY Merge Status (MANDATORY)**:
+After any merge attempt, YOU MUST CONFIRM the merge via API. DO NOT TRUST exit codes.
+
+```bash
+# CHECK if actually merged
+curl -s "https://git.eaglepass.io/api/v1/repos/ops/homelab/pulls/{pr_number}" \
+  -H "Authorization: token $GITEA_TOKEN" | jq -r '.merged'
+# EXPECTED: true
+```
+
+If `.merged` is `false`, troublehoot and retry. DO NOT proceed until confirmed.
+
 **EXECUTE Close an Issue**:
 ```bash
 source ~/.config/gitea/.env
@@ -448,9 +460,21 @@ curl -s -X POST "https://git.eaglepass.io/api/v1/repos/ops/homelab/pulls/${PR_NU
 # 2. WAIT for ArgoCD to detect and sync (30-60 seconds)
 sleep 60
 
-# 3. RUN validation checks (see 2.4.3)
+# 3. VERIFY MERGE STATUS (Strict Verification)
+IS_MERGED=$(curl -s "https://git.eaglepass.io/api/v1/repos/ops/homelab/pulls/${PR_NUM}" \
+  -H "Authorization: token $GITEA_TOKEN" | jq -r '.merged')
 
-# 4. ONLY after GREEN, PROCEED to next PR
+if [ "$IS_MERGED" != "true" ]; then
+  echo "CRITICAL: PR #${PR_NUM} failed to merge. Stopping."
+  exit 1
+fi
+
+# 4. IF Dependency Dashboard item, UPDATE Daskboard (Check box, DO NOT CLOSE)
+# ... (instructions to edit issue body) ...
+
+# 5. RUN validation checks (see 2.4.3)
+
+# 6. ONLY after GREEN, PROCEED to next PR
 ```
 
 #### 2.4.5 TROUBLESHOOT Between Merges
@@ -543,6 +567,12 @@ As each action completes, EXECUTE these updates:
 2. **ADD** outcome notes if relevant
 3. **UPDATE** timestamps
 4. **KEEP** running tally of progress
+
+**Dealing with Dependency Dashboard Items**:
+If the item came from the Dependency Dashboard:
+1. **FIND** the Dependency Dashboard issue (search open issues).
+2. **EDIT** the body to check the box `[x]` for the specific dependency.
+3. **DO NOT CLOSE** the Dependency Dashboard issue. It must remain open for Renovate.
 
 **Example Update**:
 ```markdown

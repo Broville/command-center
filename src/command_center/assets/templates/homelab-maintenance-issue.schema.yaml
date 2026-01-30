@@ -1,100 +1,106 @@
 # Homelab Maintenance Issue Schema
-# This YAML schema is populated by the agent with evidence data.
-# The homelab-maintenance-issue.py script consumes this to create/update Gitea issues.
+# Consumed by homelab-maintenance-issue.py
 
 # Issue Metadata
-title: "[Maintenance] YYYY-MM-DD - Homelab"  # Will be auto-generated if not provided
-date: ""  # ISO format: YYYY-MM-DD, defaults to today
+title: ""
+date: ""
 
 # Overall Status
 status:
-  overall: "RED"  # RED | YELLOW | GREEN
-  last_updated: ""  # ISO timestamp, auto-filled
-  source_report: ""  # e.g., reports/status-report-2026-01-21.md
+  overall: "GREEN"
+  last_updated: ""
+  source_report: ""
   assigned_to: "gitea_admin"
 
 # Cluster Identity
 cluster:
   k3s_version: ""
+  client_version: ""
   node_count: 0
-  argocd_apps_total: 0
-  ceph_status: ""  # HEALTH_OK | HEALTH_WARN | HEALTH_ERR
+  app_count: 0
+  ceph_status: "HEALTH_OK"
 
 # Layer Health Evidence
 layers:
   metal:
-    status: "GREEN"  # RED | YELLOW | GREEN
-    summary: ""  # e.g., "3/3 nodes Ready"
-  network:
-    status: "GREEN"
-    summary: ""  # e.g., "VLANs reachable, latency 5ms, OPNSense up"
-  storage_nas:
-    status: "GREEN"
-    summary: ""  # e.g., "Unraid reachable, shares accessible"
+    nodes: {status: "GREEN", details: ""}
+    versions: {status: "GREEN", details: ""}
+    cni: {status: "GREEN", details: ""}
+    kured: {status: "GREEN", details: ""}
+  
   system:
-    status: "GREEN"
-    summary: ""  # e.g., "Ceph HEALTH_OK, kube-system: 12 pods"
+    coredns: {status: "GREEN", details: ""}
+    metrics_server: {status: "GREEN", details: ""}
+    kube_vip: {status: "GREEN", details: ""}
+    argocd: {status: "GREEN", details: ""}
+  
+  storage:
+    ceph_health: {status: "GREEN", details: ""}
+    osds: {status: "GREEN", details: ""}
+    usage: {status: "GREEN", details: ""}
+    pools: {status: "GREEN", details: ""}
+    monitors: {status: "GREEN", details: ""}
+    mds: {status: "GREEN", details: ""}
+  
   platform:
-    status: "GREEN"
-    summary: ""  # e.g., "ArgoCD: 25/25 Synced+Healthy"
+    ingress: {status: "GREEN", details: ""}
+    certs: {status: "GREEN", details: ""}
+    secrets: {status: "GREEN", details: ""}
+    cert_manager: {status: "GREEN", details: ""}
+  
   apps:
-    status: "GREEN"
-    summary: ""  # e.g., "0 non-running pods"
+    pods: {status: "GREEN", details: ""}
+    gitea: {status: "GREEN", details: ""}
+    grafana: {status: "GREEN", details: ""}
+    kanidm: {status: "GREEN", details: ""}
 
-# Non-Running Pods (if any)
-non_running_pods: []
-  # - namespace: "emby"
-  #   pod: "emby-abc123"
-  #   status: "CrashLoopBackOff"
-  #   age: "2h"
-
-# Repo Inventory
-repo_inventory:
-  open_renovate_prs: []  # List of PR numbers
-  open_user_prs: []      # List of PR numbers
-  open_issues: []        # List of issue numbers (excluding maintenance)
+# Observations
+observations:
+  node_activity: "None"
+  renovate: "None"
+  network:
+    workstation: "Connected"
+    gitea: "Authenticated"
+    nas: "Not tested"
+    gateway: "Pingable"
 
 # Proposed Changes (Spec)
 proposed_changes: []
-  # - id: "C1"
-  #   type: "Fix"           # Fix | PR | Upgrade | Config
-  #   layer: "System"       # Metal | Network | Storage | System | Platform | Apps
-  #   priority: "P0"        # P0 | P1 | P2 | P3
-  #   impact: "HIGH"        # HIGH | MEDIUM | LOW
-  #   downtime: "None"      # None | Xmin | Window
-  #   summary: "Archive Ceph crashes"
-  #   dependencies: []      # List of change IDs this depends on
+  # - id: "R1"
+  #   type: "UPDATE"
+  #   layer: "Apps"
+  #   priority: "P2"
+  #   impact: "Low"
+  #   downtime: "None"
+  #   summary: "Merge PR #54"
+  #   dependencies: ["None"]
 
 # Action Items (Tasks)
-# Each item becomes a checkbox in the issue
 action_items: []
   # - id: "A1"
-  #   priority: "P0"
-  #   phase: "A"            # A=Preflight, B=Critical, C=High, D=Medium, E=Low, F=Final
-  #   layer: ""             # Optional: Metal | Network | Storage | System | Platform | Apps
-  #   title: "Preflight: Verify access"
-  #   goal: "Confirm all access methods work"
-  #   commands: "kubectl cluster-info"
-  #   expected: "All commands succeed"
-  #   if_fails: "Document which access failed"
-  #   rollback: "N/A"
+  #   priority: "P2"
+  #   layer: "Apps"     # Optional
+  #   phase: "A"        # Optional sorting phase
+  #   title: "Review and merge PR #54"
+  #   goal: "Apply updates"
+  #   commands: "Merge UI"
+  #   expected: "Green"
+  #   if_fails: "Revert"
+  #   rollback: "git revert"
 
-# Change Log (for updates)
+# Change Log
 change_log: []
-  # - timestamp: "2026-01-21 10:00"
+  # - timestamp: "2026-01-30 12:15"
   #   phase: "A"
-  #   item: "A1"
-  #   action: "Verified access"
-  #   result: "All passed"
+  #   item: "Recon"
+  #   action: "Executed"
+  #   result: "Green"
   #   status_after: "GREEN"
 
-# Closure (filled when complete)
+# Closure (filled on completion)
 closure:
-  status: ""              # RESOLVED | ""
+  status: ""
   started: ""
   completed: ""
   duration: ""
   resolved_by: ""
-  final_state: {}         # Same structure as layers
-  actions_summary: ""
-  lessons_learned: []

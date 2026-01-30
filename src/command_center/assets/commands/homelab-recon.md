@@ -404,6 +404,19 @@ curl -s "https://git.eaglepass.io/api/v1/repos/ops/homelab/pulls?state=open" \
   }]'
 ```
 
+#### 1.10.4 Capture Dependency Dashboard
+EXECUTE this query to find the semi-permanent Dependency Dashboard issue:
+
+```bash
+# Find Dependency Dashboard
+curl -s "https://git.eaglepass.io/api/v1/repos/ops/homelab/issues?state=open&q=Dependency%20Dashboard&type=issues" \
+  -H "Authorization: token $GITEA_TOKEN" | \
+  jq -r '.[] | select(.title == "Dependency Dashboard") | "Dependency Dashboard Issue #\(.number): \(.html_url)"'
+```
+
+IF found, CAPTURE its body to extract actionable checkbox items.
+```
+
 DOCUMENT minimum fields per PR:
 - PR number, title, author, created_at (age)
 - mergeable state (and blocker if not)
@@ -448,9 +461,21 @@ APPLY these ordering rules to all tasks:
 1. **PROCESS** priorities in order: `P0 → P1 → P2 → P3`
 2. **ORDER** within a priority: `Metal → System → Platform → Apps`
 3. **SCHEDULE** databases always last within a priority
+3. **SCHEDULE** databases always last within a priority
 4. **EXECUTE** one change at a time; validate GREEN after each
 
-### 4.2 Universal Validation Gate (EXECUTE After Every Change)
+### 4.2 Dependency Dashboard Integration Rules
+
+IF a Dependency Dashboard issue exists:
+1. **EXTRACT** all unchecked items (`- [ ]`) from the dashboard body
+2. **ADD** them as tasks to the Maintenance Issue
+3. **PREFIX** tasks with `[Renovate]` for clarity
+4. **LINK** back to the Dependency Dashboard in the task goal
+
+> [!IMPORTANT]
+> **Do not close the Dependency Dashboard.** The task goal in `homelab-action` will be to check off the item in the dashboard, NOT close the dashboard issue.
+
+### 4.3 Universal Validation Gate (EXECUTE After Every Change)
 
 EXECUTE this validation gate after every change:
 
@@ -563,8 +588,8 @@ The script automatically:
 ### 5.5 Maintenance Issue Structure Requirements
 
 > The maintenance issue MUST follow the structure defined in:
-> - Antigravity: `~/.gemini/scripts/homelab-maintenance-issue-template.md`
-> - Opencode: `~/.config/opencode/scripts/homelab-maintenance-issue-template.md`
+> - Antigravity: `~/.gemini/templates/homelab-maintenance-issue-template.md`
+> - Opencode: `~/.config/opencode/templates/homelab-maintenance-issue-template.md`
 > This template is the contract - any deviation is a workflow failure.
 
 **Required Sections** (in order):
@@ -701,7 +726,7 @@ COMPLETE **ALL** items before considering workflow finished:
 - [ ] 1.7 Ceph Storage evidence captured (Rook/Ceph)
 - [ ] 1.8 Platform evidence captured (Ingress, Certs, Secrets, Observability)
 - [ ] 1.9 Apps evidence captured (error-focused)
-- [ ] 1.10 Repo evidence captured (Issues + PRs)
+- [ ] 1.10 Repo evidence captured (Issues + PRs + Dependency Dashboard)
 
 ### Phase 2: Specification
 - [ ] 2.1 All changes identified from Phase 1 evidence

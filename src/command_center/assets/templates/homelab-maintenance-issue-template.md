@@ -6,261 +6,146 @@
 
 ---
 
-## Template Usage Rules
+## Issue Title
 
-1. **CHECK FIRST**: Before creating a new issue, QUERY for open issues with label `maintenance`
-2. **UPDATE IF EXISTS**: If an open maintenance issue exists, EDIT its body (do NOT add comments)
-3. **CREATE IF NONE**: Only create a new issue if no open maintenance issue exists
-4. **FOLLOW EXACTLY**: Use this exact structure - do not deviate
-
----
-
-## Issue Title Format
-
-```
-[Maintenance] YYYY-MM-DD - Homelab
-```
-
-When resolved, prepend `[RESOLVED]`:
-```
-[RESOLVED] [Maintenance] YYYY-MM-DD - Homelab
-```
+Format: `[Maintenance] YYYY-MM-DD - Homelab`
+When resolved: `[RESOLVED] [Maintenance] YYYY-MM-DD - Homelab`
 
 ---
 
 ## Issue Body Template
 
 ```markdown
-# [Maintenance] YYYY-MM-DD - Homelab
+# [Maintenance] {{ date }} - Homelab
 
 ## Status
 
 | Field | Value |
 |-------|-------|
-| **Overall Status** | 🔴 RED / 🟡 YELLOW / 🟢 GREEN |
-| **Last Updated** | YYYY-MM-DD HH:MM TZ |
-| **Source Report** | `reports/status-report-YYYY-MM-DD.md` |
+| **Overall Status** | {{ status_emoji }} {{ status_text }} |
+| **Last Updated** | {{ timestamp }} |
+| **Source Report** | {{ source_report }} |
 | **Assigned To** | gitea_admin |
-
----
 
 ## Context Pack
 
 ### Cluster Identity
+
 | Component | Value |
 |-----------|-------|
-| K3s Version | vX.Y.Z |
-| Node Count | X |
-| ArgoCD Apps | X total |
-| Ceph Status | HEALTH_OK / HEALTH_WARN / HEALTH_ERR |
+| K3s Version | {{ k3s_version }} |
+| Node Count | {{ node_count }} |
+| ArgoCD Apps | {{ app_count }} total |
+| Ceph Status | {{ ceph_status }} |
 
 ### Current Health Evidence (Snapshot)
-| Layer | Status | Summary |
-|-------|:------:|---------|
-| **Metal** | 🟢/🟡/🔴 | X/Y nodes Ready |
-| **Network** | 🟢/🟡/🔴 | VLANs reachable, latency Xms, OPNSense up |
-| **Storage (NAS)** | 🟢/🟡/🔴 | Unraid reachable, shares accessible, R/W OK |
-| **System** | 🟢/🟡/🔴 | Ceph: [status], kube-system: X pods |
-| **Platform** | 🟢/🟡/🔴 | ArgoCD: X/Y Synced+Healthy |
-| **Apps** | 🟢/🟡/🔴 | X non-running pods |
 
-### Non-Running Pods (if any)
-| Namespace | Pod | Status | Age |
-|-----------|-----|--------|-----|
-| ... | ... | ... | ... |
+#### Metal Layer
+| Check | Status | Details |
+|-------|--------|---------|
+| Nodes | {{ metal_nodes_status }} | {{ metal_nodes_details }} |
+| Node Versions | {{ metal_versions_status }} | {{ metal_versions_details }} |
+| CNI (Cilium) | {{ metal_cni_status }} | {{ metal_cni_details }} |
+| Kured | {{ metal_kured_status }} | {{ metal_kured_details }} |
 
-### Repo Inventory (Actionable)
-| Category | Count | Details |
-|----------|:-----:|---------|
-| Open Renovate PRs | X | List PR numbers |
-| Open User PRs | X | List PR numbers |
-| Open Non-Maintenance Issues | X | List issue numbers |
+#### System Layer
+| Check | Status | Details |
+|-------|--------|---------|
+| CoreDNS | {{ system_coredns_status }} | {{ system_coredns_details }} |
+| Metrics Server | {{ system_metrics_status }} | {{ system_metrics_details }} |
+| kube-vip | {{ system_kubevip_status }} | {{ system_kubevip_details }} |
+| ArgoCD | {{ system_argocd_status }} | {{ system_argocd_details }} |
 
----
+#### Storage Layer
+| Check | Status | Details |
+|-------|--------|---------|
+| Ceph Health | {{ storage_ceph_status }} | {{ storage_ceph_details }} |
+| OSDs | {{ storage_osd_status }} | {{ storage_osds_details }} |
+| Usage | {{ storage_usage_status }} | {{ storage_usage_details }} |
+| Pools | {{ storage_pools_status }} | {{ storage_pools_details }} |
+| Monitors | {{ storage_mons_status }} | {{ storage_mons_details }} |
+| MDS | {{ storage_mds_status }} | {{ storage_mds_details }} |
+
+#### Platform Layer
+| Check | Status | Details |
+|-------|--------|---------|
+| Ingress-Nginx | {{ platform_ingress_status }} | {{ platform_ingress_details }} |
+| Certificates | {{ platform_certs_status }} | {{ platform_certs_details }} |
+| External Secrets | {{ platform_secrets_status }} | {{ platform_secrets_details }} |
+| Cert-Manager | {{ platform_certmgr_status }} | {{ platform_certmgr_details }} |
+
+#### Apps Layer
+| Check | Status | Details |
+|-------|--------|---------|
+| All Pods | {{ apps_pods_status }} | {{ apps_pods_details }} |
+| Gitea | {{ apps_gitea_status }} | {{ apps_gitea_details }} |
+| Grafana | {{ apps_grafana_status }} | {{ apps_grafana_details }} |
+| Kanidm | {{ apps_kanidm_status }} | {{ apps_kanidm_details }} |
+
+### Observations
+
+#### 🔍 Node Activity
+{{ observations_node_activity }}
+
+#### 🔍 Renovate PRs
+{{ observations_renovate }}
+
+#### Network Evidence
+- **Workstation → Cluster**: {{ net_workstation_status }}
+- **Gitea API**: {{ net_gitea_status }}
+- **NAS (10.0.40.3)**: {{ net_nas_status }}
+- **Gateway (10.0.20.1)**: {{ net_gateway_status }}
 
 ## Proposed Changes (Spec)
 
-> All changes identified from evidence, with reasoning and risk assessment.
-
 | ID | Type | Layer | Priority | Impact | Downtime | Summary | Dependencies |
-|:--:|------|:-----:|:--------:|:------:|:--------:|---------|:------------:|
-| C1 | Fix | System | P0 | HIGH | None | Archive Ceph crashes | None |
-| C2 | PR | Apps | P2 | LOW | None | Merge PR #X | None |
-| C3 | Upgrade | Platform | P1 | MEDIUM | 2min | Upgrade ArgoCD | C1 |
-
-### Priority Legend
-- **P0**: CRITICAL - Do immediately
-- **P1**: HIGH - Do before completion
-- **P2**: MEDIUM - Schedule appropriately
-- **P3**: LOW - Nice to have
-
-### Impact Legend
-- **HIGH**: Core functionality, data risk, security
-- **MEDIUM**: Degraded performance, warnings
-- **LOW**: Cosmetic, minor improvements
-
-### Downtime Legend
-- **None**: No service interruption
-- **Xmin**: Expected disruption duration
-- **Window**: Requires maintenance window
-
----
+|----|------|-------|----------|--------|----------|---------|--------------|
+{{ proposed_changes_rows }}
 
 ## Execution Plan
 
-### Ordering Rules Applied
-1. Priority: P0 → P1 → P2 → P3
-2. Layer: Metal → Network → Storage → System → Platform → Apps
-3. Dependencies: Complete prerequisites before dependent items
-4. Databases: Always last within a priority level
+### Ordering Rules
+1. Process P0 → P1 → P2 → P3
+2. Within priority: Metal → System → Platform → Apps
+3. One change at a time with validation
 
-### Validation Gate (Run After EVERY Change)
+### Validation Gate (After Each Change)
+
 ```bash
-# Metal
 kubectl get nodes | grep -v "Ready" || true
-
-# Network (run health check script)
-homelab-network-check.sh --json || true
-
-# Storage/NAS (run health check script)
-homelab-nas-check.sh --json || true
-
-# System
 kubectl get pods -n kube-system | grep -v "Running\|Completed" || true
-kubectl -n rook-ceph exec deploy/rook-ceph-tools -- ceph health
-
-# Platform
 kubectl get applications -n argocd | grep -v "Synced.*Healthy" || true
-
-# Apps
+kubectl -n rook-ceph exec deploy/rook-ceph-tools -- ceph health
 kubectl get pods -A --no-headers | grep -v "Running\|Completed" || true
 ```
 
-### Stop Conditions
-- ❌ Any validation check fails
-- ❌ Unknown rollback procedure
-- ❌ Human escalation required
+**PASS Criteria**: All greps return empty + ceph health = HEALTH_OK
 
----
+### Stop Conditions
+- Any non-GREEN validation result
+- Node NotReady status
+- Ceph health ≠ HEALTH_OK
 
 ## Action Items (Tasks)
 
-> **RULES**:
-> - ALL executable steps are top-level `- [ ]` checkboxes
-> - Each checkbox is ATOMIC (one action + one verification)
-> - Ordered by: Priority → Layer → Dependencies
-> - Each includes: Goal, Commands, Expected, If-fails, Rollback
-
-### Phase A: Preflight
-- [ ] **A1 P0** Preflight: Verify access (kubectl/controller/gitea)
-  - **Goal**: Confirm all access methods work
-  - **Commands**: `kubectl cluster-info`, `ssh brimdor@10.0.20.10 "echo ok"`, Gitea API test
-  - **Expected**: All commands succeed
-  - **If fails**: Document which access failed, troubleshoot before proceeding
-  - **Rollback**: N/A
-
-- [ ] **A2 P0** Preflight: Capture baseline snapshot
-  - **Goal**: Record current state before changes
-  - **Commands**: `kubectl get nodes`, `ceph status`, `kubectl get applications -n argocd`
-  - **Expected**: Output captured to report
-  - **If fails**: Re-run failed commands
-  - **Rollback**: N/A
-
-### Phase B: Remediate Critical Findings (P0)
-- [ ] **B1 P0 System**: [Specific remediation task]
-  - **Goal**: [What this achieves]
-  - **Commands**: [Exact commands to run]
-  - **Expected**: [Success criteria]
-  - **If fails**: [Next diagnostic steps]
-  - **Rollback**: [Exact rollback commands or "N/A"]
-
-### Phase C: High Priority Items (P1)
-- [ ] **C1 P1 [Layer]**: [Task description]
-  - **Goal**: ...
-  - **Commands**: ...
-  - **Expected**: ...
-  - **If fails**: ...
-  - **Rollback**: ...
-
-### Phase D: Medium Priority Items (P2)
-- [ ] **D1 P2 [Layer]**: [Task description]
-  - **Goal**: ...
-  - **Commands**: ...
-  - **Expected**: ...
-  - **If fails**: ...
-  - **Rollback**: ...
-
-### Phase E: Low Priority Items (P3)
-- [ ] **E1 P3 [Layer]**: [Task description]
-  - **Goal**: ...
-  - **Commands**: ...
-  - **Expected**: ...
-  - **If fails**: ...
-  - **Rollback**: ...
-
-### Phase F: Final Validation
-- [ ] **F1 P0** Run `/homelab-recon` for final validation
-  - **Goal**: Confirm all layers GREEN
-  - **Commands**: Execute homelab-recon workflow
-  - **Expected**: All layers GREEN, no new findings
-  - **If fails**: Return to appropriate phase
-  - **Rollback**: N/A
-
----
+{{ action_items_list }}
 
 ## Change Log
 
 | Timestamp | Phase | Item | Action | Result | Status After |
 |-----------|:-----:|------|--------|--------|:------------:|
-| YYYY-MM-DD HH:MM | A | A1 | Verified access | All passed | 🟢 |
-| ... | ... | ... | ... | ... | ... |
+{{ change_log_rows }}
 
----
+## Closure (Filled by homelab-action)
 
-## Closure (Filled by homelab-action on completion)
+### Completion Criteria:
+- [ ] All action items completed or explicitly deferred
+- [ ] All validation gates passed
+- [ ] No regressions in cluster health
+- [ ] Maintenance issue closed
 
-### Resolution Summary
-| Field | Value |
-|-------|-------|
-| **Status** | RESOLVED |
-| **Started** | YYYY-MM-DD HH:MM |
-| **Completed** | YYYY-MM-DD HH:MM |
-| **Duration** | X hours Y minutes |
-| **Resolved By** | homelab-action workflow |
+**Final Status**: PENDING
 
-### Final Infrastructure State
-| Layer | Status | Verification |
-|-------|:------:|--------------|
-| **Metal** | 🟢 GREEN | All X nodes Ready |
-| **Network** | 🟢 GREEN | All VLANs reachable, latency <50ms |
-| **Storage (NAS)** | 🟢 GREEN | Unraid reachable, shares accessible |
-| **System** | 🟢 GREEN | Ceph HEALTH_OK |
-| **Platform** | 🟢 GREEN | All apps Synced/Healthy |
-| **Apps** | 🟢 GREEN | All pods Running |
-
-### Actions Completed Summary
-- X items resolved
-- Y PRs merged
-- Z issues closed
-
-### Lessons Learned (if any)
-1. [Observation]
-2. [Recommendation]
-
----
-
-*Created/Updated by homelab-recon workflow*
-*Last modified: YYYY-MM-DD HH:MM*
+**Closed By**: PENDING
+**Closed Date**: PENDING
 ```
-
----
-
-## Labels
-
-Always apply these labels:
-- `maintenance` (ID: 10)
-
-## Assignees
-
-Always assign to:
-- `gitea_admin`

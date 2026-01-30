@@ -501,12 +501,17 @@ kubectl get events -A --field-selector type=Warning --sort-by='.lastTimestamp' |
 > **Reporting Requirement**: You MUST output a final summary report in the EXACT format defined in the template.
 >
 > **Template Location**:
-> - Antigravity: `~/.gemini/templates/homelab-troubleshoot-report.md`
-> - Opencode: `~/.config/opencode/templates/homelab-troubleshoot-report.md`
+> - Antigravity: `~/.gemini/templates/homelab-troubleshoot-report-template.md`
+> - Opencode: `~/.config/opencode/templates/homelab-troubleshoot-report-template.md`
+>
+> **Schema Location**:
+> - Antigravity: `~/.gemini/templates/homelab-troubleshoot-report.schema.yaml`
+> - Opencode: `~/.config/opencode/templates/homelab-troubleshoot-report.schema.yaml`
 
-1. **READ** the template file from the appropriate location above.
-2. **GENERATE** the Markdown report exactly matching the template structure.
-3. **OUTPUT** the report at the very end of your response.
+1. **READ** the template and schema files from the appropriate location above.
+2. **POPULATE** the schema with your findings.
+3. **GENERATE** the Markdown report by filling the template with your schema data.
+4. **OUTPUT** the report at the very end of your response.
 
 ---
 
