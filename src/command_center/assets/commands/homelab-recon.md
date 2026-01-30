@@ -461,7 +461,7 @@ APPLY these ordering rules to all tasks:
 1. **PROCESS** priorities in order: `P0 → P1 → P2 → P3`
 2. **ORDER** within a priority: `Metal → System → Platform → Apps`
 3. **SCHEDULE** databases always last within a priority
-3. **SCHEDULE** databases always last within a priority
+
 4. **EXECUTE** one change at a time; validate GREEN after each
 
 ### 4.2 Dependency Dashboard Integration Rules

@@ -134,7 +134,9 @@ kubectl get pods -A --no-headers | grep -v "Running\|Completed" || true
 
 | Timestamp | Phase | Item | Action | Result | Status After |
 |-----------|:-----:|------|--------|--------|:------------:|
+<!-- markdownlint-disable MD055 MD056 -->
 {{ change_log_rows }}
+<!-- markdownlint-enable MD055 MD056 -->
 
 ## Closure (Filled by homelab-action)
 

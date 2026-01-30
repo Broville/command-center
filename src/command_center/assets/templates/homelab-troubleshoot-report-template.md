@@ -12,9 +12,11 @@ Session Complete - ALL LAYERS GREEN
 Final Verification
 | Component | Before | After |
 |-----------|--------|-------|
+<!-- markdownlint-disable MD055 MD056 -->
 {{#verification}}
 | {{ component }} | {{ before }} | {{ after }} |
 {{/verification}}
+<!-- markdownlint-enable MD055 MD056 -->
 
 What Was Fixed
 {{#fixes}}
