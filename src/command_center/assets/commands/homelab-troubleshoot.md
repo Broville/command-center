@@ -412,6 +412,24 @@ kubectl describe nodes | grep -E "Pressure|Taint"
 # Expected: No MemoryPressure, DiskPressure, or PIDPressure
 ```
 
+#### EXECUTE Network Layer Validation
+
+```bash
+# RUN Network Health Check Script -- SELECT ONE:
+~/.gemini/scripts/homelab-network-check.sh --verbose           # Antigravity
+~/.config/opencode/scripts/homelab-network-check.sh --verbose  # Opencode
+# Expected: All VLANs reachable, Latency <50ms (Exit Code 0)
+```
+
+#### EXECUTE Storage (NAS) Layer Validation
+
+```bash
+# RUN NAS Health Check Script -- SELECT ONE:
+~/.gemini/scripts/homelab-nas-check.sh --verbose           # Antigravity
+~/.config/opencode/scripts/homelab-nas-check.sh --verbose  # Opencode
+# Expected: Unraid reachable, shares accessible (Exit Code 0)
+```
+
 #### EXECUTE System Layer Validation
 
 ```bash
@@ -477,6 +495,19 @@ kubectl get events -A --field-selector type=Warning --sort-by='.lastTimestamp' |
 
 **IF ANY check fails or ANY issue remains (from LOW to CRITICAL), troubleshooting MUST continue.** Do NOT close issues or report success until all layers are GREEN and all issues are resolved.
 
+### Step 6: GENERATE Completion Report
+
+> [!IMPORTANT]
+> **Reporting Requirement**: You MUST output a final summary report in the EXACT format defined in the template.
+>
+> **Template Location**:
+> - Antigravity: `~/.gemini/templates/homelab-troubleshoot-report.md`
+> - Opencode: `~/.config/opencode/templates/homelab-troubleshoot-report.md`
+
+1. **READ** the template file from the appropriate location above.
+2. **GENERATE** the Markdown report exactly matching the template structure.
+3. **OUTPUT** the report at the very end of your response.
+
 ---
 
 ## Execution Checklist
@@ -489,10 +520,13 @@ COMPLETE all items before considering troubleshooting finished:
 - [ ] COMPLETE Step 4: APPLY fix, VERIFY solution, DOCUMENT findings
 - [ ] COMPLETE Step 5: VALIDATE all layers are GREEN
 - [ ] CONFIRM Metal Layer: All nodes `Ready`, no resource pressure
+- [ ] CONFIRM Network Layer: All VLANs reachable, latency <50ms
+- [ ] CONFIRM Storage Layer: Unraid reachable, shares accessible
 - [ ] CONFIRM System Layer: Ceph `HEALTH_OK`, all kube-system pods `Running`
 - [ ] CONFIRM Platform Layer: All ArgoCD apps `Synced` AND `Healthy`
 - [ ] CONFIRM Apps Layer: All pods `Running`, no error states
 - [ ] CONFIRM Overall Status: **GREEN**
+- [ ] COMPLETE Step 6: GENERATE completion report in the required format
 
 ---
 
@@ -646,7 +680,8 @@ Full API documentation: https://git.eaglepass.io/api/swagger
 8. ✅ **Platform Layer**: GREEN - All ArgoCD apps `Synced` AND `Healthy`
 9. ✅ **Apps Layer**: GREEN - All pods `Running`, no error states
 10. ✅ **Overall Status**: GREEN across all layers
-11. ✅ ZERO issues remaining (CRITICAL through LOW)
+11. ✅ **Final Report**: Generated and verified against the template
+12. ✅ ZERO issues remaining (CRITICAL through LOW)
 
 > [!CAUTION]
 > **DO NOT STOP UNTIL ALL CRITERIA ARE MET.**
