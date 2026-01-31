@@ -21,6 +21,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.table import Table
 from rich.style import Style
 from rich.theme import Theme
 
@@ -83,6 +84,8 @@ SCRIPT_FILES = [
 TEMPLATE_FILES = [
     "homelab-maintenance-issue.schema.yaml",
     "homelab-maintenance-issue-template.md",
+    "homelab-troubleshoot-report.schema.yaml",
+    "homelab-troubleshoot-report-template.md",
 ]
 SUPPORT_DIR = ".do-the-thing"
 
@@ -219,10 +222,31 @@ def bootstrap_to_target(
     console.print("\n  [bold]Support:[/bold]")
     src_support = assets_dir / SUPPORT_DIR
     if src_support.exists():
-        if not copy_directory(src_support, support_dir, dry_run):
+        if copy_directory(src_support, support_dir, dry_run):
+            pass 
+        else:
             success = False
     else:
         console.print(f"  [warning]![/warning] Support dir missing: {SUPPORT_DIR}")
+
+    # Summary Report Table
+    console.print("\n[bold cyan]Bootstrap Report Summary[/bold cyan]")
+    table = Table(title=f"{name} Components", show_header=True, header_style="bold magenta", box=None)
+    table.add_column("Component Type", style="cyan")
+    table.add_column("Count", justify="right", style="green")
+    table.add_column("Status", justify="center")
+
+    def get_status(count, files):
+        if count == len(files): return "[success]OK[/success]"
+        return f"[warning]{count}/{len(files)}[/warning]"
+
+    table.add_row("Commands", str(cmd_count), get_status(cmd_count, COMMAND_FILES))
+    table.add_row("Rules", str(rule_count), get_status(rule_count, RULE_FILES))
+    table.add_row("Scripts", str(script_count), get_status(script_count, SCRIPT_FILES))
+    table.add_row("Templates", str(template_count), get_status(template_count, TEMPLATE_FILES))
+    table.add_row("Support", "1" if src_support.exists() else "0", "[success]OK[/success]" if src_support.exists() else "[warning]Missing[/warning]")
+
+    console.print(table)
 
     # IDE-specific extras
     if name == "Antigravity":
@@ -341,9 +365,8 @@ When working on homelab-related tasks, follow the rules in `~/.config/opencode/r
              console.print(f"  [cyan]~[/cyan] Would create AGENTS.md at {OPENCODE_AGENTS_MD}")
 
     # Summary
-    total = cmd_count + rule_count
     if success:
-        console.print(f"\n  [success]✓ {name} setup complete[/success] ({cmd_count} commands, {rule_count} rules)")
+        console.print(f"\n  [success]✓ {name} setup complete[/success]")
     else:
         console.print(f"\n  [warning]⚠ {name} setup completed with warnings[/warning]")
 
