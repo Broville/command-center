@@ -31,7 +31,7 @@ $ARGUMENTS
 You **MUST** consider the user input before proceeding (if not empty).
 
 The text the user typed after the command **is** their priority input - it may specify:
-- Specific layers to focus on (Metal, System, Platform, Apps)
+- Specific layers to focus on (Metal, Network, Storage, System, Platform, Apps)
 - Specific services or namespaces to investigate
 - Whether to skip certain phases
 - Any special instructions or constraints
@@ -56,6 +56,25 @@ It is **Spec-Driven Development (SDD)** adapted to operations:
 - **Analysis**: self-audit that the issue is complete and actionable
 - **Remediation**: fill gaps, rerun analysis
 - **Handoff**: maintenance issue ready for `/homelab-action` (RECON STOPS HERE)
+
+> [!IMPORTANT]
+> ## Script-First Rule (Non-Negotiable)
+> If a task can be performed by a script, it MUST be performed by a script.
+> Manual `kubectl`/`curl` sequences are reserved for secondary diagnostics or when developing the script that will replace them.
+
+## 5-Pillar Flow (Standard Command Contract)
+
+This workflow is organized into 5 pillars for reliability and "small model" execution:
+
+1. **Pillar 1: Validation** (Phase 1.0 - 1.2)
+2. **Pillar 2: Context Pack** (Phase 1.3 - 1.10)
+3. **Pillar 3: Synthesis** (Phase 2 - 5)
+4. **Pillar 4: Audit** (Phase 6 - 7)
+5. **Pillar 5: Handoff** (Phase 8)
+
+> [!IMPORTANT]
+> ## Canonical Layer Order
+> Unless user input overrides, ordering is always: `Metal → Network → Storage → System → Platform → Apps`.
 
 > [!CAUTION]
 > **FOUNDATIONAL RULES APPLY** - See `_foundational-rules.md`.
@@ -112,6 +131,71 @@ If any contract requirement is missing, TREAT it as a **blocking recon failure**
 ---
 
 ## Phase 1: Context Loading (EXHAUSTIVE Evidence Capture)
+
+### 1.0 Initialize Run (Task Tracker + Context Pack)
+
+You MUST create a persistent on-disk context pack so later phases (Synthesis/Audit) can re-use evidence without re-running commands.
+
+```bash
+RUN_DATE="$(date +%F)"
+
+# Primary deliverables
+REPORT_FILE="reports/status-report-$RUN_DATE.md"
+CONTEXT_DIR="reports/context-pack-$RUN_DATE"
+
+mkdir -p "reports" "$CONTEXT_DIR"
+
+# Initialize a resumable task tracker (do not overwrite if it already exists)
+if [ ! -f recon-tasks.md ]; then
+  if [ -f ~/.config/opencode/templates/recon-tasks-template.md ]; then
+    cp ~/.config/opencode/templates/recon-tasks-template.md recon-tasks.md
+  elif [ -f ~/.gemini/templates/recon-tasks-template.md ]; then
+    cp ~/.gemini/templates/recon-tasks-template.md recon-tasks.md
+  else
+    echo "ERROR: recon-tasks template not found. Expected one of:" >&2
+    echo "- ~/.config/opencode/templates/recon-tasks-template.md" >&2
+    echo "- ~/.gemini/templates/recon-tasks-template.md" >&2
+    exit 1
+  fi
+fi
+
+# Optional: add a header to the report (idempotent append)
+{
+  echo "# Homelab Recon Status Report ($RUN_DATE)"
+  echo
+  echo "Generated: $(date -Is)"
+  echo "Context Pack: $CONTEXT_DIR"
+  echo
+} >> "$REPORT_FILE"
+```
+
+> [!IMPORTANT]
+> From this point onward: when you run a script or command, save its raw output under `$CONTEXT_DIR/` and reference it from `$REPORT_FILE`.
+
+### 1.0.1 Toolchain Gate (Auto-Mitigation Required)
+
+If a required tool is missing, you MUST install it before proceeding.
+
+**Minimum required tools**: `kubectl`, `jq`, `curl`, `ssh`, `nc`, `python3`
+
+```bash
+# Debian/Ubuntu baseline
+sudo apt-get update
+sudo apt-get install -y jq curl openssh-client netcat-openbsd python3 python3-pip
+
+# Python deps used by the maintenance issue scripts
+python3 -m pip install --user PyYAML requests
+
+# kubectl (user-local install)
+if ! command -v kubectl >/dev/null 2>&1; then
+  curl -fsSL -o /tmp/kubectl "https://dl.k8s.io/release/$(curl -fsSL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+  mkdir -p "$HOME/.local/bin"
+  install -m 0755 /tmp/kubectl "$HOME/.local/bin/kubectl"
+fi
+
+# Optional (drift detection)
+# argocd: download from GitHub releases if needed
+```
 
 ### 1.1 Establish Access (Priority Order)
 
@@ -172,6 +256,19 @@ curl -sf "https://git.eaglepass.io/api/v1/user" -H "Authorization: token $GITEA_
 ~/.config/opencode/scripts/recon.sh --json     # Opencode
 ```
 
+Recommended: save the JSON output to the context pack:
+
+```bash
+if [ -x ~/.config/opencode/scripts/recon.sh ]; then
+  ~/.config/opencode/scripts/recon.sh --json > "$CONTEXT_DIR/recon.json"
+elif [ -x ~/.gemini/scripts/recon.sh ]; then
+  ~/.gemini/scripts/recon.sh --json > "$CONTEXT_DIR/recon.json"
+else
+  echo "ERROR: recon.sh not found" >&2
+  exit 1
+fi
+```
+
 **Alternative: Manual Commands**
 
 EXECUTE these commands and CAPTURE output as evidence:
@@ -207,6 +304,19 @@ kubectl get events -A --sort-by=.lastTimestamp | tail -200
 ~/.config/opencode/scripts/homelab-network-check.sh --json     # Opencode
 ```
 
+Recommended: save the JSON output to the context pack:
+
+```bash
+if [ -x ~/.config/opencode/scripts/homelab-network-check.sh ]; then
+  ~/.config/opencode/scripts/homelab-network-check.sh --json > "$CONTEXT_DIR/network.json"
+elif [ -x ~/.gemini/scripts/homelab-network-check.sh ]; then
+  ~/.gemini/scripts/homelab-network-check.sh --json > "$CONTEXT_DIR/network.json"
+else
+  echo "ERROR: homelab-network-check.sh not found" >&2
+  exit 1
+fi
+```
+
 **Exit Codes**: 0=GREEN, 1=YELLOW, 2=RED
 
 **Alternative: In-Cluster Testing (Pod-Based)**
@@ -222,18 +332,6 @@ kubectl logs network-test-pod
 
 # Cleanup
 kubectl delete pod network-test-pod --ignore-not-found
-```
-
-**Method 2: External Network Testing (Script-Based)**
-
-```bash
-# Run comprehensive network health check (SELECT ONE)
-~/.gemini/scripts/homelab-network-check.sh --verbose           # Antigravity
-~/.config/opencode/scripts/homelab-network-check.sh --verbose  # Opencode
-
-# Or with JSON output for parsing (SELECT ONE)
-~/.gemini/scripts/homelab-network-check.sh --json              # Antigravity
-~/.config/opencode/scripts/homelab-network-check.sh --json     # Opencode
 ```
 
 **GREEN Criteria for Network Layer**:
@@ -257,6 +355,19 @@ kubectl delete pod network-test-pod --ignore-not-found
 # Or with JSON output for parsing (SELECT ONE)
 ~/.gemini/scripts/homelab-nas-check.sh --json              # Antigravity
 ~/.config/opencode/scripts/homelab-nas-check.sh --json     # Opencode
+```
+
+Recommended: save the JSON output to the context pack:
+
+```bash
+if [ -x ~/.config/opencode/scripts/homelab-nas-check.sh ]; then
+  ~/.config/opencode/scripts/homelab-nas-check.sh --json > "$CONTEXT_DIR/nas.json"
+elif [ -x ~/.gemini/scripts/homelab-nas-check.sh ]; then
+  ~/.gemini/scripts/homelab-nas-check.sh --json > "$CONTEXT_DIR/nas.json"
+else
+  echo "ERROR: homelab-nas-check.sh not found" >&2
+  exit 1
+fi
 ```
 
 **Exit Codes**: 0=GREEN, 1=YELLOW, 2=RED
@@ -405,16 +516,27 @@ curl -s "https://git.eaglepass.io/api/v1/repos/ops/homelab/pulls?state=open" \
 ```
 
 #### 1.10.4 Capture Dependency Dashboard
-EXECUTE this query to find the semi-permanent Dependency Dashboard issue:
+IF a Dependency Dashboard issue exists, you MUST capture its body so you can extract unchecked items (`- [ ]`).
 
 ```bash
-# Find Dependency Dashboard
-curl -s "https://git.eaglepass.io/api/v1/repos/ops/homelab/issues?state=open&q=Dependency%20Dashboard&type=issues" \
-  -H "Authorization: token $GITEA_TOKEN" | \
-  jq -r '.[] | select(.title == "Dependency Dashboard") | "Dependency Dashboard Issue #\(.number): \(.html_url)"'
-```
+# Find Dependency Dashboard issue number (empty if not found)
+DD_NUM=$(
+  curl -s "https://git.eaglepass.io/api/v1/repos/ops/homelab/issues?state=open&q=Dependency%20Dashboard&type=issues" \
+    -H "Authorization: token $GITEA_TOKEN" | \
+    jq -r 'map(select(.title == "Dependency Dashboard")) | .[0].number // empty'
+)
 
-IF found, CAPTURE its body to extract actionable checkbox items.
+if [ -n "$DD_NUM" ]; then
+  echo "Dependency Dashboard Issue #$DD_NUM" | tee -a "$REPORT_FILE"
+
+  # Save the dashboard body for later extraction
+  curl -s "https://git.eaglepass.io/api/v1/repos/ops/homelab/issues/$DD_NUM" \
+    -H "Authorization: token $GITEA_TOKEN" | \
+    jq -r '.body' > "$CONTEXT_DIR/dependency-dashboard.md"
+
+  # Extract unchecked dashboard items (best-effort)
+  grep -E '^\- \[ \]' "$CONTEXT_DIR/dependency-dashboard.md" > "$CONTEXT_DIR/dependency-dashboard-unchecked.txt" || true
+fi
 ```
 
 DOCUMENT minimum fields per PR:
@@ -459,7 +581,7 @@ EXECUTE these decision rules:
 APPLY these ordering rules to all tasks:
 
 1. **PROCESS** priorities in order: `P0 → P1 → P2 → P3`
-2. **ORDER** within a priority: `Metal → System → Platform → Apps`
+2. **ORDER** within a priority: `Metal → Network → Storage → System → Platform → Apps`
 3. **SCHEDULE** databases always last within a priority
 
 4. **EXECUTE** one change at a time; validate GREEN after each
@@ -485,11 +607,33 @@ kubectl get pods -n kube-system | grep -v "Running\|Completed" || true
 kubectl get applications -n argocd | grep -v "Synced.*Healthy" || true
 kubectl -n rook-ceph exec deploy/rook-ceph-tools -- ceph health
 kubectl get pods -A --no-headers | grep -v "Running\|Completed" || true
+
+# Network gate (exit code must be 0)
+if [ -x ~/.config/opencode/scripts/homelab-network-check.sh ]; then
+  ~/.config/opencode/scripts/homelab-network-check.sh --json > "$CONTEXT_DIR/network-gate.json"
+elif [ -x ~/.gemini/scripts/homelab-network-check.sh ]; then
+  ~/.gemini/scripts/homelab-network-check.sh --json > "$CONTEXT_DIR/network-gate.json"
+else
+  echo "ERROR: homelab-network-check.sh not found" >&2
+  exit 1
+fi
+
+# Storage/NAS gate (exit code must be 0)
+if [ -x ~/.config/opencode/scripts/homelab-nas-check.sh ]; then
+  ~/.config/opencode/scripts/homelab-nas-check.sh --json > "$CONTEXT_DIR/nas-gate.json"
+elif [ -x ~/.gemini/scripts/homelab-nas-check.sh ]; then
+  ~/.gemini/scripts/homelab-nas-check.sh --json > "$CONTEXT_DIR/nas-gate.json"
+else
+  echo "ERROR: homelab-nas-check.sh not found" >&2
+  exit 1
+fi
 ```
 
 **PASS Criteria** - ALL must be true:
 - All greps return no output
 - `ceph health` returns `HEALTH_OK`
+- Network script exits `0` (GREEN)
+- NAS script exits `0` (GREEN)
 
 **STOP Conditions** - HALT execution if any occur:
 - Any non-GREEN result
@@ -502,8 +646,9 @@ kubectl get pods -A --no-headers | grep -v "Running\|Completed" || true
 ### 5.1 CREATE Status Report (Evidence Archive)
 
 WRITE a report to `reports/`:
-- Filename: `reports/status-report-YYYY-MM-DD.md`
-- Content: raw evidence from Phase 1
+- Filename: `reports/status-report-YYYY-MM-DD.md` (use `$REPORT_FILE` from Phase 1.0)
+- Context pack directory: `reports/context-pack-YYYY-MM-DD/` (use `$CONTEXT_DIR` from Phase 1.0)
+- Content: links to the raw evidence files saved under the context pack (paste raw output only when needed)
 - Purpose: archive for reference; maintenance issue stores actionable spec + tasks
 
 ### 5.2 CHECK for Existing Maintenance Issue
@@ -605,7 +750,7 @@ The script automatically:
 | Order | Criteria | Example |
 |:-----:|----------|---------|
 | 1st | Priority | P0 before P1 before P2 before P3 |
-| 2nd | Layer | Metal → System → Platform → Apps |
+| 2nd | Layer | Metal → Network → Storage → System → Platform → Apps |
 | 3rd | Dependencies | Prerequisites before dependent items |
 | 4th | Risk | Lower risk items before higher risk |
 | Last | Databases | Always processed last within priority |
@@ -717,6 +862,8 @@ When Phase 7 (Remediation) completes successfully (or was skipped because Phase 
 COMPLETE **ALL** items before considering workflow finished:
 
 ### Phase 1: Context Loading
+- [ ] 1.0 Run initialized (context pack + report paths + `recon-tasks.md`)
+- [ ] 1.0.1 Toolchain gate passed (missing tools installed)
 - [ ] 1.1 Access established (workstation or controller fallback)
 - [ ] 1.2 Access validated (kubectl, SSH, Gitea API all succeed)
 - [ ] 1.3 Baseline health snapshot captured
@@ -774,8 +921,8 @@ COMPLETE **ALL** items before considering workflow finished:
 
 **This workflow is COMPLETE when ALL of the following are TRUE:**
 
-1. ✅ Phase 1 evidence is fully captured and documented (all 10 sub-items)
-2. ✅ Status report exists at `reports/status-report-YYYY-MM-DD.md`
+1. ✅ Phase 1 prerequisites + evidence are fully captured and documented (including `recon-tasks.md` + all evidence sub-items)
+2. ✅ Status report exists at `reports/status-report-YYYY-MM-DD.md` (and references the context pack)
 3. ✅ Maintenance issue is created/updated with ALL required sections filled
 4. ✅ Phase 6 self-audit passes (ALL checks verified)
 5. ✅ Maintenance issue is ready for `/homelab-action` to consume
