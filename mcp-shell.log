@@ -66,3 +66,10 @@
 {"level":"error","message":"Command execution error: fish: Expected a variable name after this $.\nset -euo pipefail;/bin/fish -c $'nc -zv 10.0.40.3 445; nc -zv 10.0.40.3 2049; curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://10.0.40.3'\n                               ^\n","timestamp":"2026-01-29T22:46:54.218Z"}
 {"level":"info","message":"Executing command: ping -c 2 10.0.20.1 || true; ping -c 2 10.0.10.1 || true; ping -c 2 10.0.0.1 || true","timestamp":"2026-01-29T22:46:55.534Z"}
 {"level":"error","message":"Command execution error: fish: Expected a variable name after this $.\nset -euo pipefail;/bin/fish -c $'ping -c 2 10.0.20.1 || true; ping -c 2 10.0.10.1 || true; ping -c 2 10.0.0.1 || true'\n                               ^\n","timestamp":"2026-01-29T22:46:55.561Z"}
+{"level":"info","message":"MCP Shell Server started","timestamp":"2026-01-31T04:35:19.507Z"}
+{"level":"info","message":"Shell: /bin/fish","timestamp":"2026-01-31T04:35:19.509Z"}
+{"level":"info","message":"Working Directory: /home/brimdor","timestamp":"2026-01-31T04:35:19.509Z"}
+{"level":"info","message":"Platform: linux","timestamp":"2026-01-31T04:35:19.509Z"}
+{"level":"info","message":"Hostname: EagleCachyJr","timestamp":"2026-01-31T04:35:19.509Z"}
+{"level":"info","message":"Username: brimdor","timestamp":"2026-01-31T04:35:19.510Z"}
+{"level":"info","message":"MCP Shell Server ready","timestamp":"2026-01-31T04:35:19.520Z"}
