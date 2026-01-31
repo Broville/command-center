@@ -139,6 +139,16 @@ You MUST create a persistent on-disk context pack so later phases (Synthesis/Aud
 ```bash
 RUN_DATE="$(date +%F)"
 
+# Ensure we are in the correct repository context
+REPO_ROOT="/home/brimdor/Documents/Github/homelab"
+if [ -d "$REPO_ROOT" ]; then
+  cd "$REPO_ROOT" || exit 1
+  echo "Changed directory to: $REPO_ROOT"
+else
+  echo "ERROR: Repository root not found at $REPO_ROOT" >&2
+  exit 1
+fi
+
 # Primary deliverables
 REPORT_FILE="reports/status-report-$RUN_DATE.md"
 CONTEXT_DIR="reports/context-pack-$RUN_DATE"
