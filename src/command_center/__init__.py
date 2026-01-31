@@ -86,6 +86,7 @@ TEMPLATE_FILES = [
     "homelab-maintenance-issue-template.md",
     "homelab-troubleshoot-report.schema.yaml",
     "homelab-troubleshoot-report-template.md",
+    "recon-tasks-template.md",
 ]
 SUPPORT_DIR = ".do-the-thing"
 
