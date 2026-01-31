@@ -54,24 +54,32 @@ get_ceph_health() {
 # Execution
 if [ "$JSON_OUTPUT" = true ]; then
     log "Generating JSON output..."
-    NODES=$(get_nodes)
-    UNHEALTHY_PODS=$(get_pods_unhealthy)
-    APPS=$(get_argocd_apps)
-    CEPH=$(get_ceph_health)
+    
+    # Use temporary files to avoid "Argument list too long" errors
+    TMP_NODES=$(mktemp)
+    TMP_PODS=$(mktemp)
+    TMP_APPS=$(mktemp)
+    TMP_CEPH=$(mktemp)
+    trap 'rm -f "$TMP_NODES" "$TMP_PODS" "$TMP_APPS" "$TMP_CEPH"' EXIT
+
+    get_nodes > "$TMP_NODES"
+    get_pods_unhealthy > "$TMP_PODS"
+    get_argocd_apps > "$TMP_APPS"
+    get_ceph_health > "$TMP_CEPH"
 
     jq -n \
       --arg timestamp "$TIMESTAMP" \
-      --argjson nodes "$NODES" \
-      --argjson unhappy_pods "$UNHEALTHY_PODS" \
-      --argjson apps "$APPS" \
-      --argjson ceph "$CEPH" \
+      --slurpfile nodes "$TMP_NODES" \
+      --slurpfile unhappy_pods "$TMP_PODS" \
+      --slurpfile apps "$TMP_APPS" \
+      --slurpfile ceph "$TMP_CEPH" \
       '{
         timestamp: $timestamp,
         cluster: {
-            nodes: $nodes.items | map({name: .metadata.name, status: .status.conditions[-1].type, capacity: .status.capacity}),
-            unhealthy_pods: $unhappy_pods | map({namespace: .metadata.namespace, name: .metadata.name, status: .status.phase, reason: .status.containerStatuses[0].state.waiting.reason}),
-            apps: $apps.items | map({name: .metadata.name, health: .status.health.status, sync: .status.sync.status}),
-            ceph: $ceph
+            nodes: $nodes[0].items | map({name: .metadata.name, status: .status.conditions[-1].type, capacity: .status.capacity}),
+            unhealthy_pods: $unhappy_pods[0] | map({namespace: .metadata.namespace, name: .metadata.name, status: .status.phase, reason: .status.containerStatuses[0].state.waiting.reason}),
+            apps: $apps[0].items | map({name: .metadata.name, health: .status.health.status, sync: .status.sync.status}),
+            ceph: $ceph[0]
         }
       }'
 else
