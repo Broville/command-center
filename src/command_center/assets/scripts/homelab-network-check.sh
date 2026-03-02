@@ -259,17 +259,18 @@ main() {
     echo ">> Testing VLAN Gateways..." >&2
     local vlan_unreachable=0
     for vlan in "${!VLANS[@]}"; do
-        if ping_test "$vlan" "${VLANS[$vlan]}"; then
+        # VLAN gateways typically block ICMP by design; use TCP 443 as fallback
+        if reachability_test "$vlan" "${VLANS[$vlan]}" true 443 80; then
             continue
         fi
-        add_result "$vlan" "YELLOW" "Unreachable (ICMP)" ""
         vlan_unreachable=$((vlan_unreachable + 1))
     done
 
     if (( vlan_unreachable >= 3 )); then
         add_result "VLAN_GATEWAYS" "RED" "${vlan_unreachable} VLAN gateways unreachable" ""
     elif (( vlan_unreachable > 0 )); then
-        add_result "VLAN_GATEWAYS" "YELLOW" "${vlan_unreachable} VLAN gateways unreachable" ""
+        # Individual gateway results are already recorded by reachability_test
+        add_result "VLAN_GATEWAYS" "YELLOW" "${vlan_unreachable} VLAN gateways unreachable (ICMP+TCP)" ""
     else
         add_result "VLAN_GATEWAYS" "GREEN" "All VLAN gateways reachable" ""
     fi

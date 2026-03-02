@@ -33,6 +33,7 @@ from urllib.error import HTTPError, URLError
 
 try:
     import yaml
+
     YAML_AVAILABLE = True
 except ImportError:
     YAML_AVAILABLE = False
@@ -83,7 +84,9 @@ def find_existing_maintenance_issue() -> dict | None:
 
 def status_emoji(status: str) -> str:
     """Convert status string to emoji."""
-    return {"RED": "🔴", "YELLOW": "🟡", "GREEN": "🟢"}.get(status.upper().strip(), "⚪")
+    return {"RED": "🔴", "YELLOW": "🟡", "GREEN": "🟢"}.get(
+        status.upper().strip(), "⚪"
+    )
 
 
 def format_table_row(items: list) -> str:
@@ -93,30 +96,44 @@ def format_table_row(items: list) -> str:
 
 def generate_issue_body(data: dict, template_path: Path = None) -> str:
     """Generate markdown issue body by filling the template."""
-    
+
     # 1. Load Template
     if not template_path:
         # Default: ../templates/homelab-maintenance-issue-template.md relative to script
         # This assumes the script is in 'scripts/' and template is in 'templates/' at the same level
-        template_path = Path(__file__).resolve().parent.parent / "templates" / "homelab-maintenance-issue-template.md"
-    
+        template_path = (
+            Path(__file__).resolve().parent.parent
+            / "templates"
+            / "homelab-maintenance-issue-template.md"
+        )
+
     try:
         if not template_path.exists():
-             # Fallback for debugging or if file missing - but realistically should fail
-             print(f"WARNING: Template not found at {template_path}", file=sys.stderr)
-             return f"# Error\nTemplate not found at {template_path}"
-             
-        template_content = template_path.read_text(encoding="utf-8")
+            # Fallback for debugging or if file missing - but realistically should fail
+            print(f"WARNING: Template not found at {template_path}", file=sys.stderr)
+            return f"# Error\nTemplate not found at {template_path}"
+
+        raw_template = template_path.read_text(encoding="utf-8")
+        # Extract content between ```markdown and closing ``` fences
+        import re
+
+        fence_match = re.search(
+            r"```markdown\s*\n(.*)\n```\s*$", raw_template, re.DOTALL
+        )
+        if fence_match:
+            template_content = fence_match.group(1)
+        else:
+            template_content = raw_template
     except Exception as e:
         print(f"ERROR: Failed to load template: {e}", file=sys.stderr)
         return f"# Error\nFailed to load template: {e}"
-    
+
     now = datetime.now().strftime("%Y-%m-%d %H:%M %Z")
     date = data.get("date") or datetime.now().strftime("%Y-%m-%d")
-    
+
     # Helper to safely get nested keys
     def get_val(d, path, default="N/A"):
-        keys = path.split('.')
+        keys = path.split(".")
         curr = d
         for k in keys:
             if isinstance(curr, dict):
@@ -139,12 +156,10 @@ def generate_issue_body(data: dict, template_path: Path = None) -> str:
         "status_text": get_val(data, "status.overall", "RED"),
         "timestamp": now,
         "source_report": get_val(data, "status.source_report", "N/A"),
-        
         "k3s_version": get_val(data, "cluster.k3s_version"),
         "node_count": get_val(data, "cluster.node_count"),
         "app_count": get_val(data, "cluster.app_count"),
         "ceph_status": get_val(data, "cluster.ceph_status"),
-
         # Metal
         "metal_nodes_status": get_status_details("metal", "nodes")[0],
         "metal_nodes_details": get_status_details("metal", "nodes")[1],
@@ -154,7 +169,6 @@ def generate_issue_body(data: dict, template_path: Path = None) -> str:
         "metal_cni_details": get_status_details("metal", "cni")[1],
         "metal_kured_status": get_status_details("metal", "kured")[0],
         "metal_kured_details": get_status_details("metal", "kured")[1],
-
         # System
         "system_coredns_status": get_status_details("system", "coredns")[0],
         "system_coredns_details": get_status_details("system", "coredns")[1],
@@ -164,7 +178,6 @@ def generate_issue_body(data: dict, template_path: Path = None) -> str:
         "system_kubevip_details": get_status_details("system", "kube_vip")[1],
         "system_argocd_status": get_status_details("system", "argocd")[0],
         "system_argocd_details": get_status_details("system", "argocd")[1],
-
         # Storage
         "storage_ceph_status": get_status_details("storage", "ceph_health")[0],
         "storage_ceph_details": get_status_details("storage", "ceph_health")[1],
@@ -178,7 +191,6 @@ def generate_issue_body(data: dict, template_path: Path = None) -> str:
         "storage_mons_details": get_status_details("storage", "monitors")[1],
         "storage_mds_status": get_status_details("storage", "mds")[0],
         "storage_mds_details": get_status_details("storage", "mds")[1],
-
         # Platform
         "platform_ingress_status": get_status_details("platform", "ingress")[0],
         "platform_ingress_details": get_status_details("platform", "ingress")[1],
@@ -188,7 +200,6 @@ def generate_issue_body(data: dict, template_path: Path = None) -> str:
         "platform_secrets_details": get_status_details("platform", "secrets")[1],
         "platform_certmgr_status": get_status_details("platform", "cert_manager")[0],
         "platform_certmgr_details": get_status_details("platform", "cert_manager")[1],
-
         # Apps
         "apps_pods_status": get_status_details("apps", "pods")[0],
         "apps_pods_details": get_status_details("apps", "pods")[1],
@@ -198,11 +209,14 @@ def generate_issue_body(data: dict, template_path: Path = None) -> str:
         "apps_grafana_details": get_status_details("apps", "grafana")[1],
         "apps_kanidm_status": get_status_details("apps", "kanidm")[0],
         "apps_kanidm_details": get_status_details("apps", "kanidm")[1],
-
         # Observations
-        "observations_node_activity": get_val(data, "observations.node_activity", "None"),
+        "observations_node_activity": get_val(
+            data, "observations.node_activity", "None"
+        ),
         "observations_renovate": get_val(data, "observations.renovate", "None"),
-        "net_workstation_status": get_val(data, "observations.network.workstation", "N/A"),
+        "net_workstation_status": get_val(
+            data, "observations.network.workstation", "N/A"
+        ),
         "net_gitea_status": get_val(data, "observations.network.gitea", "N/A"),
         "net_nas_status": get_val(data, "observations.network.nas", "N/A"),
         "net_gateway_status": get_val(data, "observations.network.gateway", "N/A"),
@@ -212,7 +226,9 @@ def generate_issue_body(data: dict, template_path: Path = None) -> str:
     body = template_content
     for key, val in values.items():
         # Space-lenient replacement for {{ key }} or {{key}}
-        body = body.replace(f"{{{{ {key} }}}}", str(val)).replace(f"{{{{{key}}}}}", str(val))
+        body = body.replace(f"{{{{ {key} }}}}", str(val)).replace(
+            f"{{{{{key}}}}}", str(val)
+        )
 
     # Proposed Changes Rows
     proposed_rows = ""
@@ -222,14 +238,21 @@ def generate_issue_body(data: dict, template_path: Path = None) -> str:
             proposed_rows += f"| {change.get('id')} | {change.get('type')} | {change.get('layer')} | {change.get('priority')} | {change.get('impact')} | {change.get('downtime')} | {change.get('summary')} | {deps} |\n"
     else:
         proposed_rows = "| - | - | - | - | - | - | No changes required | - |\n"
-    
+
     body = body.replace("{{ proposed_changes_rows }}", proposed_rows.strip())
 
     # Action Items List
     action_items_str = ""
-    phases = {"A": "Preflight", "B": "Critical (P0)", "C": "High (P1)", "D": "Medium (P2)", "E": "Low (P3)", "F": "Final Validation"}
+    phases = {
+        "A": "Preflight",
+        "B": "Critical (P0)",
+        "C": "High (P1)",
+        "D": "Medium (P2)",
+        "E": "Low (P3)",
+        "F": "Final Validation",
+    }
     items_by_phase = {}
-    
+
     for item in data.get("action_items", []):
         phase = item.get("phase", "A")
         if phase not in items_by_phase:
@@ -240,20 +263,24 @@ def generate_issue_body(data: dict, template_path: Path = None) -> str:
         for phase_key in sorted(items_by_phase.keys()):
             phase_title = phases.get(phase_key, f"Phase {phase_key}")
             action_items_str += f"### {phase_title}\n\n"
-            
+
             for item in items_by_phase[phase_key]:
                 prio = item.get("priority", "")
                 layer = item.get("layer", "")
                 layer_str = f" {layer}" if layer else ""
-                
+
                 action_items_str += f"- [ ] **{item.get('id', '')} {prio}{layer_str}**: {item.get('title', 'Task')}\n"
                 action_items_str += f"  - **Goal**: {item.get('goal', 'N/A')}\n"
-                action_items_str += f"  - **Commands**: `{item.get('commands', 'N/A')}`\n"
+                action_items_str += (
+                    f"  - **Commands**: `{item.get('commands', 'N/A')}`\n"
+                )
                 action_items_str += f"  - **Expected**: {item.get('expected', 'N/A')}\n"
                 action_items_str += f"  - **If fails**: {item.get('if_fails', 'N/A')}\n"
-                action_items_str += f"  - **Rollback**: {item.get('rollback', 'N/A')}\n\n"
+                action_items_str += (
+                    f"  - **Rollback**: {item.get('rollback', 'N/A')}\n\n"
+                )
     else:
-         action_items_str = "No action items required - all layers GREEN.\n"
+        action_items_str = "No action items required - all layers GREEN.\n"
 
     body = body.replace("{{ action_items_list }}", action_items_str.strip())
 
@@ -261,12 +288,12 @@ def generate_issue_body(data: dict, template_path: Path = None) -> str:
     change_log_str = ""
     if data.get("change_log"):
         for log in data.get("change_log", []):
-             change_log_str += f"| {log.get('timestamp')} | {log.get('phase')} | {log.get('item')} | {log.get('action')} | {log.get('result')} | {status_emoji(log.get('status_after', ''))} |\n"
+            change_log_str += f"| {log.get('timestamp')} | {log.get('phase')} | {log.get('item')} | {log.get('action')} | {log.get('result')} | {status_emoji(log.get('status_after', ''))} |\n"
     else:
         change_log_str = "| - | - | - | No actions yet | - | - |\n"
 
     body = body.replace("{{ change_log_rows }}", change_log_str.strip())
-    
+
     return body
 
 
@@ -298,37 +325,51 @@ def update_issue(issue_number: int, data: dict, template_path: Path = None) -> d
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Create or update Gitea maintenance issues")
+    parser = argparse.ArgumentParser(
+        description="Create or update Gitea maintenance issues"
+    )
     parser.add_argument("--input", "-i", help="Path to YAML input file (or use stdin)")
-    parser.add_argument("--check-existing", action="store_true", help="Just check for existing issue")
-    parser.add_argument("--json-input", action="store_true", help="Input is JSON instead of YAML")
+    parser.add_argument(
+        "--check-existing", action="store_true", help="Just check for existing issue"
+    )
+    parser.add_argument(
+        "--json-input", action="store_true", help="Input is JSON instead of YAML"
+    )
     parser.add_argument("--template", help="Path to markdown template file")
-    parser.add_argument("--preview", action="store_true", help="Preview markdown body without making API calls")
+    parser.add_argument(
+        "--preview",
+        action="store_true",
+        help="Preview markdown body without making API calls",
+    )
     args = parser.parse_args()
 
     if not GITEA_TOKEN and not args.preview:
         print("ERROR: GITEA_TOKEN environment variable not set", file=sys.stderr)
         print("Run: source ~/.config/gitea/.env", file=sys.stderr)
         sys.exit(1)
-        
+
     template_path = Path(args.template) if args.template else None
 
     # Just check for existing issue
     if args.check_existing:
         if not GITEA_TOKEN:
-             # Fail if token missing even for checking
+            # Fail if token missing even for checking
             print("ERROR: GITEA_TOKEN environment variable not set", file=sys.stderr)
             sys.exit(1)
-            
+
         issue = find_existing_maintenance_issue()
         if issue:
-            print(json.dumps({
-                "exists": True,
-                "number": issue["number"],
-                "title": issue["title"],
-                "url": issue["html_url"],
-                "state": issue["state"],
-            }))
+            print(
+                json.dumps(
+                    {
+                        "exists": True,
+                        "number": issue["number"],
+                        "title": issue["title"],
+                        "url": issue["html_url"],
+                        "state": issue["state"],
+                    }
+                )
+            )
         else:
             print(json.dumps({"exists": False}))
         sys.exit(0)
@@ -340,7 +381,10 @@ def main():
     elif not sys.stdin.isatty():
         content = sys.stdin.read()
     else:
-        print("ERROR: No input provided. Use --input FILE or pipe YAML to stdin.", file=sys.stderr)
+        print(
+            "ERROR: No input provided. Use --input FILE or pipe YAML to stdin.",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     # Parse input
@@ -353,7 +397,10 @@ def main():
         try:
             data = json.loads(content)
         except json.JSONDecodeError:
-            print("ERROR: PyYAML not installed and input is not valid JSON", file=sys.stderr)
+            print(
+                "ERROR: PyYAML not installed and input is not valid JSON",
+                file=sys.stderr,
+            )
             print("Install with: pip install pyyaml", file=sys.stderr)
             sys.exit(1)
 
@@ -375,15 +422,21 @@ def main():
         action = "created"
 
     # Output result
-    print(json.dumps({
-        "action": action,
-        "number": result["number"],
-        "title": result["title"],
-        "url": result["html_url"],
-        "state": result["state"],
-    }))
+    print(
+        json.dumps(
+            {
+                "action": action,
+                "number": result["number"],
+                "title": result["title"],
+                "url": result["html_url"],
+                "state": result["state"],
+            }
+        )
+    )
 
-    print(f"✓ Issue #{result['number']} {action}: {result['html_url']}", file=sys.stderr)
+    print(
+        f"✓ Issue #{result['number']} {action}: {result['html_url']}", file=sys.stderr
+    )
 
 
 if __name__ == "__main__":
