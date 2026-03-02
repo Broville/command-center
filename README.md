@@ -29,6 +29,7 @@ Then bootstrap your workflows:
 ```bash
 cmdctl init           # Bootstrap to all detected IDEs
 cmdctl init --opencode    # Bootstrap only to Opencode
+cmdctl init --copilot     # Bootstrap only to VS Code Copilot
 cmdctl check          # Verify installation
 ```
 
@@ -51,7 +52,7 @@ cd command-center
 
 The bootstrap script will:
 
-1. Auto-detect installed IDEs (Opencode, Antigravity)
+1. Auto-detect installed IDEs
 2. Copy workflow commands to global locations
 3. Copy supporting files (phase docs, templates, constitution)
 4. Verify the installation
@@ -104,6 +105,8 @@ command-center/
 |-----------|----------|---------------|
 | **Opencode** | `~/.config/opencode/command/` | `~/.config/opencode/.do-the-thing/` |
 | **Antigravity** | `~/.gemini/antigravity/global_workflows/` | `~/.gemini/antigravity/.do-the-thing/` |
+| **VS Code Copilot** | `~/.config/Code/User/prompts/*.prompt.md` (or `~/.config/Code - Insiders/User/prompts/*.prompt.md`) | `~/.copilot/.do-the-thing/` |
+| **VS Code Copilot Rules** | `~/.copilot/instructions/*.instructions.md` | n/a |
 
 ## Path Resolution
 
@@ -112,6 +115,7 @@ The `/do-the-thing` workflow uses path resolution to find phase files and consti
 1. **Project-local** (preferred): `.do-the-thing/` in current project
 2. **Global Opencode**: `~/.config/opencode/.do-the-thing/`
 3. **Global Antigravity**: `~/.gemini/antigravity/.do-the-thing/`
+4. **Global Copilot**: `~/.copilot/.do-the-thing/`
 
 This allows project-specific customizations while using global defaults.
 
