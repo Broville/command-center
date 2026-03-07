@@ -1,7 +1,7 @@
 [project]
 name = "command-center"
 dynamic = ["version"]
-description = "Command-Center: Global workflow commands for AI coding assistants. Bootstrap /do-the-thing, /commit, and /init to Opencode, Antigravity, and VS Code GitHub Copilot."
+description = "Command-Center: Global workflow commands for AI coding assistants. Bootstrap /do-the-thing, /commit, and /init to Opencode, Antigravity, Claude Code, and VS Code GitHub Copilot."
 requires-python = ">=3.11"
 dependencies = [
     "typer>=0.9.0",

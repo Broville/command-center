@@ -30,6 +30,7 @@ Then bootstrap your workflows:
 cmdctl init           # Bootstrap to all detected IDEs
 cmdctl init --opencode    # Bootstrap only to Opencode
 cmdctl init --copilot     # Bootstrap only to VS Code Copilot
+cmdctl init --claude      # Bootstrap only to Claude Code
 cmdctl check          # Verify installation
 ```
 
@@ -107,6 +108,33 @@ command-center/
 | **Antigravity** | `~/.gemini/antigravity/global_workflows/` | `~/.gemini/antigravity/.do-the-thing/` |
 | **VS Code Copilot** | `~/.config/Code/User/prompts/*.prompt.md` (or `~/.config/Code - Insiders/User/prompts/*.prompt.md`) | `~/.copilot/.do-the-thing/` |
 | **VS Code Copilot Rules** | `~/.copilot/instructions/*.instructions.md` | n/a |
+| **Claude Code (Desktop/CLI)** | `~/.claude/skills/*/SKILL.md` | `~/.claude/.do-the-thing/` |
+
+### Claude Code Path Matrix
+
+Use this when mapping terminology across agents (Opencode/Antigravity/Copilot/Claude):
+
+| Concept | Claude Location |
+|---------|------------------|
+| Global instructions | `~/.claude/CLAUDE.md` |
+| Project instructions | `./CLAUDE.md` or `./.claude/CLAUDE.md` |
+| Local project instructions | `./CLAUDE.local.md` |
+| Global rules | `~/.claude/rules/**/*.md` |
+| Project rules | `./.claude/rules/**/*.md` |
+| Global skills | `~/.claude/skills/<skill>/SKILL.md` |
+| Project skills | `./.claude/skills/<skill>/SKILL.md` |
+| User settings | `~/.claude/settings.json` |
+| Project settings | `./.claude/settings.json` |
+| Project local settings | `./.claude/settings.local.json` |
+| MCP (user/local scopes) | `~/.claude.json` |
+| MCP (project scope) | `./.mcp.json` |
+| Claude Desktop app MCP config | macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`, Windows: `%APPDATA%\Claude\claude_desktop_config.json` |
+
+Notes:
+
+- Claude Desktop chat config and Claude Code config are separate.
+- Command-Center installs workflow commands as Claude skills (preferred modern format).
+- Command-Center does not install Claude legacy command files (`.claude/commands`).
 
 ## Path Resolution
 
@@ -116,6 +144,7 @@ The `/do-the-thing` workflow uses path resolution to find phase files and consti
 2. **Global Opencode**: `~/.config/opencode/.do-the-thing/`
 3. **Global Antigravity**: `~/.gemini/antigravity/.do-the-thing/`
 4. **Global Copilot**: `~/.copilot/.do-the-thing/`
+5. **Global Claude Code**: `~/.claude/.do-the-thing/`
 
 This allows project-specific customizations while using global defaults.
 

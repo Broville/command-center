@@ -9,6 +9,7 @@ Usage:
     cmdctl init --all --headless
     cmdctl init --opencode --headless
     cmdctl init --copilot --headless
+    cmdctl init --claude --headless
 """
 
 import os
@@ -62,6 +63,12 @@ COPILOT_PROMPTS_STABLE = Path.home() / ".config" / "Code" / "User" / "prompts"
 COPILOT_PROMPTS_INSIDERS = (
     Path.home() / ".config" / "Code - Insiders" / "User" / "prompts"
 )
+CLAUDE_SKILLS = Path.home() / ".claude" / "skills"
+CLAUDE_RULES = Path.home() / ".claude" / "rules"
+CLAUDE_SCRIPTS = Path.home() / ".claude" / "scripts"
+CLAUDE_TEMPLATES = Path.home() / ".claude" / "templates"
+CLAUDE_SUPPORT = Path.home() / ".claude" / ".do-the-thing"
+CLAUDE_MD = Path.home() / ".claude" / "CLAUDE.md"
 
 # Source files (relative to package assets directory)
 # Commands are workflow files invoked via /command
@@ -152,6 +159,15 @@ def get_copilot_prompt_dirs() -> List[Path]:
 def detect_copilot() -> bool:
     """Check if VS Code/GitHub Copilot is installed or configured."""
     return bool(get_copilot_prompt_dirs()) or COPILOT_INSTRUCTIONS.exists()
+
+
+def detect_claude() -> bool:
+    """Check if Claude Code/Desktop is installed or configured."""
+    return (
+        (Path.home() / ".claude").exists()
+        or (Path.home() / ".config" / "Claude").exists()
+        or shutil.which("claude") is not None
+    )
 
 
 def copy_file(src: Path, dest: Path, dry_run: bool = False) -> bool:
@@ -249,6 +265,23 @@ def adapt_do_the_thing_for_copilot(body: str) -> str:
     return body
 
 
+def adapt_do_the_thing_for_claude(body: str) -> str:
+    """Add Claude Code support paths to do-the-thing command text."""
+    body = body.replace(
+        "1. **Global Opencode**: `~/.config/opencode/.do-the-thing/`\n2. **Global Antigravity**: `~/.gemini/antigravity/.do-the-thing/`",
+        "1. **Global Opencode**: `~/.config/opencode/.do-the-thing/`\n2. **Global Antigravity**: `~/.gemini/antigravity/.do-the-thing/`\n3. **Global Claude Code**: `~/.claude/.do-the-thing/`",
+    )
+    body = body.replace(
+        "based on which app (Opencode or Antigravity) is executing the command.",
+        "based on which app (Opencode, Antigravity, or Claude Code) is executing the command.",
+    )
+    body = body.replace(
+        "- **Global Opencode**: `~/.config/opencode/.do-the-thing/.specify/memory/constitution.md`\n- **Global Antigravity**: `~/.gemini/antigravity/.do-the-thing/.specify/memory/constitution.md`",
+        "- **Global Opencode**: `~/.config/opencode/.do-the-thing/.specify/memory/constitution.md`\n- **Global Antigravity**: `~/.gemini/antigravity/.do-the-thing/.specify/memory/constitution.md`\n- **Global Claude Code**: `~/.claude/.do-the-thing/.specify/memory/constitution.md`",
+    )
+    return body
+
+
 def render_copilot_prompt(src: Path) -> str:
     """Render a command markdown file to Copilot .prompt.md format."""
     content = src.read_text()
@@ -283,6 +316,29 @@ def render_copilot_instruction(src: Path) -> str:
         f"name: {yaml_quote(src.stem)}\n"
         f"description: {yaml_quote(description)}\n"
         "applyTo: '**'\n"
+        "---\n\n" + body.lstrip("\n")
+    )
+
+    if not rendered.endswith("\n"):
+        rendered += "\n"
+
+    return rendered
+
+
+def render_claude_skill(src: Path) -> str:
+    """Render a command markdown file to Claude Code skill format."""
+    content = src.read_text()
+    frontmatter, body = split_markdown_frontmatter(content)
+    description = extract_frontmatter_description(frontmatter, f"Run /{src.stem}")
+
+    if src.name == "do-the-thing.md":
+        body = adapt_do_the_thing_for_claude(body)
+
+    rendered = (
+        "---\n"
+        f"name: {yaml_quote(src.stem)}\n"
+        f"description: {yaml_quote(description)}\n"
+        "disable-model-invocation: true\n"
         "---\n\n" + body.lstrip("\n")
     )
 
@@ -416,6 +472,193 @@ def bootstrap_to_copilot(assets_dir: Path, dry_run: bool = False) -> bool:
     else:
         console.print(
             "\n  [warning]⚠ VS Code Copilot setup completed with warnings[/warning]"
+        )
+
+    return success
+
+
+def bootstrap_to_claude(assets_dir: Path, dry_run: bool = False) -> bool:
+    """Bootstrap workflow files to Claude Code global locations."""
+    success = True
+    skill_count = 0
+    rule_count = 0
+    script_count = 0
+    template_count = 0
+
+    console.print("\n[bold cyan]Setting up Claude Code[/bold cyan]")
+    console.print(f"  [dim]Skills: {CLAUDE_SKILLS}[/dim]")
+    console.print(f"  [dim]Rules: {CLAUDE_RULES}[/dim]")
+    console.print(f"  [dim]Scripts: {CLAUDE_SCRIPTS}[/dim]")
+    console.print(f"  [dim]Templates: {CLAUDE_TEMPLATES}[/dim]")
+    console.print(f"  [dim]Support: {CLAUDE_SUPPORT}[/dim]")
+
+    # Copy command files as Claude skills (SKILL.md)
+    console.print("\n  [bold]Skills:[/bold]")
+    commands_src = assets_dir / "commands"
+    for filename in COMMAND_FILES:
+        src = commands_src / filename
+        if not src.exists():
+            console.print(f"  [warning]![/warning] Asset missing: commands/{filename}")
+            success = False
+            continue
+
+        skill_content = render_claude_skill(src)
+        skill_path = CLAUDE_SKILLS / src.stem / "SKILL.md"
+        if write_text_file(skill_content, skill_path, dry_run, f"{src.stem}/SKILL.md"):
+            skill_count += 1
+        else:
+            success = False
+
+    # Copy rule files
+    console.print("\n  [bold]Rules:[/bold]")
+    rules_src = assets_dir / "rules"
+    for filename in RULE_FILES:
+        src = rules_src / filename
+        if src.exists():
+            if copy_file(src, CLAUDE_RULES / filename, dry_run):
+                rule_count += 1
+            else:
+                success = False
+        else:
+            console.print(f"  [warning]![/warning] Asset missing: rules/{filename}")
+            success = False
+
+    # Copy script files
+    console.print("\n  [bold]Scripts:[/bold]")
+    scripts_src = assets_dir / "scripts"
+    for filename in SCRIPT_FILES:
+        src = scripts_src / filename
+        if src.exists():
+            if copy_file(src, CLAUDE_SCRIPTS / filename, dry_run):
+                script_count += 1
+            else:
+                success = False
+        else:
+            console.print(f"  [warning]![/warning] Asset missing: scripts/{filename}")
+            success = False
+
+    # Copy template files
+    console.print("\n  [bold]Templates:[/bold]")
+    templates_src = assets_dir / "templates"
+    for filename in TEMPLATE_FILES:
+        src = templates_src / filename
+        if src.exists():
+            if copy_file(src, CLAUDE_TEMPLATES / filename, dry_run):
+                template_count += 1
+            else:
+                success = False
+        else:
+            console.print(f"  [warning]![/warning] Asset missing: templates/{filename}")
+            success = False
+
+    # Copy support directory for do-the-thing assets
+    console.print("\n  [bold]Support:[/bold]")
+    src_support = assets_dir / SUPPORT_DIR
+    if src_support.exists():
+        if not copy_directory(src_support, CLAUDE_SUPPORT, dry_run):
+            success = False
+    else:
+        console.print(f"  [warning]![/warning] Support dir missing: {SUPPORT_DIR}")
+        success = False
+
+    # Create global CLAUDE.md guidance
+    console.print("\n  [bold]Claude Memory:[/bold]")
+    claude_md_content = """# Command-Center Global Instructions
+
+This file is auto-loaded by Claude Code to provide system-wide context.
+
+## Global Rules
+
+When working on homelab-related tasks, follow the rules in `~/.claude/rules/`:
+
+- **Foundational Rules**: `HOMELAB_foundational_rules.md` - ABSOLUTE rules (1-7)
+- **Network Reference**: `HOMELAB_network.md` - VLANs, devices
+- **Cluster Reference**: `HOMELAB_cluster.md` - Nodes, services, storage
+- **Access Reference**: `HOMELAB_access.md` - SSH, kubectl, external access
+
+> **CRITICAL**: ALL GREEN status required across Metal, System, Platform, and Apps layers.
+
+## Available Skills
+
+- `/do-the-thing` - Spec-Driven Development workflow
+- `/commit` - Comprehensive commit workflow
+- `/init` - Generate AGENTS.md
+- `/homelab-recon` - Health check & maintenance report
+- `/homelab-action` - Execute maintenance items
+- `/homelab-troubleshoot` - Diagnose issues
+
+## Skill Locations
+
+- Global skills: `~/.claude/skills/*/SKILL.md`
+- Global rules: `~/.claude/rules/*.md`
+- Global support: `~/.claude/.do-the-thing/`
+"""
+    if not write_text_file(
+        claude_md_content,
+        CLAUDE_MD,
+        dry_run,
+        "CLAUDE.md (global memory)",
+    ):
+        success = False
+
+    console.print("\n[bold cyan]Bootstrap Report Summary[/bold cyan]")
+    table = Table(
+        title="Claude Code Components",
+        show_header=True,
+        header_style="bold magenta",
+        box=None,
+    )
+    table.add_column("Component Type", style="cyan")
+    table.add_column("Count", justify="right", style="green")
+    table.add_column("Status", justify="center")
+
+    table.add_row(
+        "Skills",
+        str(skill_count),
+        "[success]OK[/success]"
+        if skill_count == len(COMMAND_FILES)
+        else f"[warning]{skill_count}/{len(COMMAND_FILES)}[/warning]",
+    )
+    table.add_row(
+        "Rules",
+        str(rule_count),
+        "[success]OK[/success]"
+        if rule_count == len(RULE_FILES)
+        else f"[warning]{rule_count}/{len(RULE_FILES)}[/warning]",
+    )
+    table.add_row(
+        "Scripts",
+        str(script_count),
+        "[success]OK[/success]"
+        if script_count == len(SCRIPT_FILES)
+        else f"[warning]{script_count}/{len(SCRIPT_FILES)}[/warning]",
+    )
+    table.add_row(
+        "Templates",
+        str(template_count),
+        "[success]OK[/success]"
+        if template_count == len(TEMPLATE_FILES)
+        else f"[warning]{template_count}/{len(TEMPLATE_FILES)}[/warning]",
+    )
+    table.add_row(
+        "Support",
+        "1" if src_support.exists() else "0",
+        "[success]OK[/success]"
+        if src_support.exists()
+        else "[warning]Missing[/warning]",
+    )
+    table.add_row(
+        "CLAUDE.md",
+        "1",
+        "[success]OK[/success]" if success else "[warning]Check[/warning]",
+    )
+    console.print(table)
+
+    if success:
+        console.print("\n  [success]✓ Claude Code setup complete[/success]")
+    else:
+        console.print(
+            "\n  [warning]⚠ Claude Code setup completed with warnings[/warning]"
         )
 
     return success
@@ -708,6 +951,7 @@ def run_wizard(dry_run: bool):
         has_opencode = detect_opencode()
         has_antigravity = detect_antigravity()
         has_copilot = detect_copilot()
+        has_claude = detect_claude()
 
     detected = []
     if has_opencode:
@@ -716,6 +960,8 @@ def run_wizard(dry_run: bool):
         detected.append("Antigravity")
     if has_copilot:
         detected.append("VS Code Copilot")
+    if has_claude:
+        detected.append("Claude Code")
 
     if not detected:
         console.print("[warning]No known AI assistants detected.[/warning]")
@@ -741,6 +987,9 @@ def run_wizard(dry_run: bool):
 
     if Confirm.ask(f"Install to [cyan]VS Code Copilot[/cyan]?", default=has_copilot):
         targets.append("copilot")
+
+    if Confirm.ask(f"Install to [cyan]Claude Code[/cyan]?", default=has_claude):
+        targets.append("claude")
 
     if not targets:
         console.print("[yellow]No targets selected. Exiting.[/yellow]")
@@ -808,6 +1057,14 @@ def run_wizard(dry_run: bool):
             progress.remove_task(task)
             console.print("  [success]✓[/success] VS Code Copilot configured")
 
+        if "claude" in targets:
+            task = progress.add_task("Bootstrapping Claude Code...", total=None)
+            if not bootstrap_to_claude(assets_dir, dry_run):
+                success_all = False
+            time.sleep(0.5)  # UX pacing
+            progress.remove_task(task)
+            console.print("  [success]✓[/success] Claude Code configured")
+
     # 5. Summary
     console.print()
     if success_all:
@@ -843,6 +1100,9 @@ def init(
     copilot: bool = typer.Option(
         False, "--copilot", help="Bootstrap only to VS Code GitHub Copilot"
     ),
+    claude: bool = typer.Option(
+        False, "--claude", help="Bootstrap only to Claude Code"
+    ),
     all_targets: bool = typer.Option(
         False, "--all", help="Bootstrap to all detected IDEs"
     ),
@@ -855,7 +1115,9 @@ def init(
     """
 
     # Interactive Mode (Default if no specific targets and not headless)
-    if not headless and not (opencode or antigravity or copilot or all_targets):
+    if not headless and not (
+        opencode or antigravity or copilot or claude or all_targets
+    ):
         run_wizard(dry_run)
         return
 
@@ -870,11 +1132,13 @@ def init(
     target_opencode = opencode
     target_antigravity = antigravity
     target_copilot = copilot
+    target_claude = claude
 
     if all_targets:
         target_opencode = detect_opencode()
         target_antigravity = detect_antigravity()
         target_copilot = detect_copilot()
+        target_claude = detect_claude()
 
     # Fallback if nothing selected but headless wasn't strict?
     # Actually if they ran `cmdctl init --headless` with no other flags, we should prob auto-detect.
@@ -882,14 +1146,21 @@ def init(
         not target_opencode
         and not target_antigravity
         and not target_copilot
+        and not target_claude
         and headless
-        and not (opencode or antigravity or copilot)
+        and not (opencode or antigravity or copilot or claude)
     ):
         target_opencode = detect_opencode()
         target_antigravity = detect_antigravity()
         target_copilot = detect_copilot()
+        target_claude = detect_claude()
 
-    if not target_opencode and not target_antigravity and not target_copilot:
+    if (
+        not target_opencode
+        and not target_antigravity
+        and not target_copilot
+        and not target_claude
+    ):
         console.print("[error]No targets specified or detected.[/error]")
         raise typer.Exit(1)
 
@@ -919,6 +1190,9 @@ def init(
 
     if target_copilot:
         bootstrap_to_copilot(assets_dir, dry_run)
+
+    if target_claude:
+        bootstrap_to_claude(assets_dir, dry_run)
 
     console.print("[success]Done.[/success]")
 
@@ -1010,6 +1284,34 @@ def check():
         console.print(f"  [success]✓[/success] {COPILOT_SUPPORT}/")
     else:
         console.print(f"  [dim]○[/dim] {COPILOT_SUPPORT}/ [dim](not installed)[/dim]")
+
+    # Check Claude Code
+    console.print("\n[cyan]Claude Code:[/cyan]")
+    for filename in COMMAND_FILES:
+        skill_path = CLAUDE_SKILLS / Path(filename).stem / "SKILL.md"
+        if skill_path.exists():
+            console.print(f"  [success]✓[/success] {skill_path}")
+        else:
+            console.print(f"  [error]✗[/error] {skill_path} [dim](missing)[/dim]")
+            all_ok = False
+
+    for filename in RULE_FILES:
+        path = CLAUDE_RULES / filename
+        if path.exists():
+            console.print(f"  [success]✓[/success] {path}")
+        else:
+            console.print(f"  [error]✗[/error] {path} [dim](missing)[/dim]")
+            all_ok = False
+
+    if CLAUDE_SUPPORT.exists():
+        console.print(f"  [success]✓[/success] {CLAUDE_SUPPORT}/")
+    else:
+        console.print(f"  [dim]○[/dim] {CLAUDE_SUPPORT}/ [dim](not installed)[/dim]")
+
+    if CLAUDE_MD.exists():
+        console.print(f"  [success]✓[/success] {CLAUDE_MD}")
+    else:
+        console.print(f"  [dim]○[/dim] {CLAUDE_MD} [dim](not installed)[/dim]")
 
     console.print()
     if all_ok:
