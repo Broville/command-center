@@ -51,6 +51,8 @@ cd command-center
 ./scripts/bootstrap.sh
 ```
 
+`scripts/bootstrap.sh` is now a thin wrapper that delegates to `cmdctl init`.
+
 The bootstrap script will:
 
 1. Auto-detect installed IDEs
@@ -65,6 +67,7 @@ The bootstrap script will:
 ./scripts/bootstrap.sh --dry-run       # Preview changes without applying
 ./scripts/bootstrap.sh --opencode      # Bootstrap only to Opencode
 ./scripts/bootstrap.sh --antigravity   # Bootstrap only to Antigravity
+./scripts/bootstrap.sh --copilot       # Bootstrap only to VS Code Copilot
 ./scripts/bootstrap.sh --all           # Bootstrap to all detected IDEs (default)
 ```
 
