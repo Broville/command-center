@@ -1,0 +1,38 @@
+name: Sync Issue to Broville Roadmap Board
+
+on:
+  issues:
+    types: [opened, reopened, closed, labeled, unlabeled]
+
+permissions:
+  issues: read
+  contents: read
+
+jobs:
+  sync-to-board:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.BROVILLE_APP_ID }}
+          private-key: ${{ secrets.BROVILLE_APP_PRIVATE_KEY }}
+          installation-id: ${{ secrets.BROVILLE_INSTALL_ID }}
+
+      - name: Checkout .github repo for sync script
+        uses: actions/checkout@v4
+        with:
+          repository: Broville/.github
+          token: ${{ steps.app-token.outputs.token }}
+          path: .github-org
+
+      - name: Sync Issue to Board
+        run: python3 .github-org/scripts/sync-issue-to-board.py
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          ISSUE_NODE_ID: ${{ github.event.issue.node_id }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_STATE: ${{ github.event.issue.state }}
+          LABELS: ${{ join(github.event.issue.labels.*.name, ',') }}
