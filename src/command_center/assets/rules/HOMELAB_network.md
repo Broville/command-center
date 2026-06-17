@@ -56,8 +56,13 @@ The Nelson Network is a segmented VLAN network running a Kubernetes cluster, NAS
 | 10 | Management | `10.0.10.0/24` | `10.0.10.1` | Network equipment |
 | 20 | Cluster-Prod | `10.0.20.0/24` | `10.0.20.1` | Kubernetes cluster |
 | 30 | Cluster-Extra | `10.0.30.0/24` | `10.0.30.1` | Raspberry Pis |
+
+> **Evidence**: VLAN summary and device inventory in `homelab/network/docs/network/vlans.md` and `homelab/network/docs/network/devices.md` confirm these networks, gateways, and purposes.
+
 | 40 | Storage | `10.0.40.0/24` | `10.0.40.1` | NAS traffic |
 | 50 | IoT/Wireless | `10.0.50.0/24` | `10.0.50.1` | Wireless/IoT |
+
+> **Evidence**: VLAN summary and device inventory in `homelab/network/docs/network/vlans.md` and `homelab/network/docs/network/devices.md` confirm VLAN 40 (storage/NAS), VLAN 50 (IoT/wireless), and their gateways.
 
 **Inter-VLAN Routing**: Full "God Mode" - all VLANs can communicate with all other VLANs.
 
@@ -72,6 +77,8 @@ The Nelson Network is a segmented VLAN network running a Kubernetes cluster, NAS
 | TPLink AX5400 | `10.0.10.3` | Access Point | Broadcasts VLAN 50 |
 | UNRAID NAS | `10.0.40.3` | NAS Server | Storage + Twingate |
 
+> **Evidence**: Device inventory in `homelab/network/docs/network/devices.md` confirms these infrastructure device IPs, types, and roles.
+
 ### Web UIs
 
 | Service | URL | Access |
@@ -79,3 +86,5 @@ The Nelson Network is a segmented VLAN network running a Kubernetes cluster, NAS
 | OPNSense | `https://10.0.0.1` | Any VLAN |
 | TPLink Switch | `http://10.0.10.2` | Any VLAN |
 | UNRAID NAS | `http://10.0.40.3` | Any VLAN |
+
+> **Evidence**: Management URLs and access scope are documented in `homelab/network/docs/network/devices.md` and the VLAN reference (`homelab/network/docs/network/vlans.md`).

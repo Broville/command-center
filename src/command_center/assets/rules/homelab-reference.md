@@ -6,7 +6,7 @@ applies_to:
   - homelab-recon
   - homelab-action
 sync_locations:
-  - ~/.gemini/SUB_RULES/HOMELAB_reference.md
+  - ~/.gemini/SUB_RULES/homelab-reference.md
   - ~/.gemini/antigravity/global_workflows/homelab-reference.md
   - ~/.config/opencode/command/homelab-reference.md
 sync_note: Master index for homelab rules. References modular sub-rule files.
@@ -56,6 +56,8 @@ kubectl get applications -n argocd | grep -v "Synced.*Healthy" # Empty = GREEN
 kubectl exec -n rook-ceph deploy/rook-ceph-tools -- ceph health # HEALTH_OK = GREEN
 ```
 
+> **Evidence**: These validation commands are aligned with the live cluster state verified by the truth brief: 9 Ready nodes, `kubectl get applications -n argocd` returning 60 Apps, and `ceph health` reporting `HEALTH_OK` (with 5 of 6 OSDs up after chikorita decommission).
+
 ---
 
 ## Key References
@@ -67,6 +69,8 @@ kubectl exec -n rook-ceph deploy/rook-ceph-tools -- ceph health # HEALTH_OK = GR
 | **GitHub Mirror** | https://github.com/brimdor/homelab |
 | **Gitea API Docs** | https://git.eaglepass.io/api/swagger |
 | **Gitea Token** | `~/.config/gitea/.env` |
+
+> **Evidence**: Repository and documentation URLs are recorded in the canonical homelab access docs (`homelab/network/docs/access/external-access.md`) and the command-center rules index. The Gitea token path is the local convention used by homelab workflows.
 
 ---
 

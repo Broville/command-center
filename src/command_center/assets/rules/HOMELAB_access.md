@@ -14,6 +14,8 @@ sync_note: Access procedures and troubleshooting reference.
 
 # Agent Access Guide
 
+> **Evidence**: This access guide reflects the current network and cluster state: ash (`10.0.20.10`) as the SSH jump host, Kubernetes API at `10.0.20.50:6443`, and external/internal application lists from `homelab/network/docs/access/external-access.md`.
+
 ## SSH Access
 
 ```bash
@@ -25,6 +27,8 @@ cd ~/homelab && git pull && make tools
 # Wait 20-30 seconds for container to load
 kubectl get nodes -o wide
 ```
+
+> **Evidence**: ash is the only SSH jump host documented in the network device inventory (`homelab/network/docs/network/devices.md`) and is not registered as a Kubernetes node (`kubectl get nodes`).
 
 ## Direct SSH to Nodes
 
@@ -74,13 +78,19 @@ kubectl port-forward svc/<service> -n <namespace> <local-port>:<remote-port>
 | Wildcard | `*.eaglepass.io` |
 | Backend | `https://ingress-nginx-controller.ingress-nginx` |
 
+> **Evidence**: Cloudflare Tunnel configuration is documented in `homelab/network/docs/access/external-access.md` and implemented via the `cloudflared` ArgoCD Application in the live cluster.
+
 ### External Applications
 
 | App | URL |
 |-----|-----|
 | Open WebUI | `https://open.eaglepass.io` |
 | Emby | `https://emby.eaglepass.io` |
+| Emby Health | `https://emby-health.eaglepass.io` |
 | HumbleAI | `https://humbleai.eaglepass.io` |
+| HumbleAI Canary | `https://humbleai-canary.eaglepass.io` |
+
+> **Evidence**: External app list matches `homelab/network/docs/access/external-access.md`, which is the canonical source for Cloudflare Tunnel-exposed applications. Emby Health and HumbleAI Canary were missing from the original rules list and have been added.
 
 ### Internal-Only Applications
 
@@ -90,6 +100,10 @@ kubectl port-forward svc/<service> -n <namespace> <local-port>:<remote-port>
 | Radarr | `https://radarr.eaglepass.io` |
 | Sonarr | `https://sonarr.eaglepass.io` |
 | SABnzbd | `https://sabnzbd.eaglepass.io` |
+| SearXNG | `https://searxng.eaglepass.io` |
+| LocalAI | `https://localai.eaglepass.io` |
+
+> **Evidence**: Internal app list matches `homelab/network/docs/access/external-access.md`. SearXNG and LocalAI were missing from the original rules list and have been added.
 
 ### Making an App Externally Accessible
 
@@ -122,6 +136,8 @@ spec:
 - **Twingate**: NAS at `10.0.40.3` runs Twingate connectors for secure remote access
 - **VPN**: OPNSense can be configured with WireGuard or OpenVPN
 
+> **Evidence**: UNRAID NAS IP `10.0.40.3` is documented in `homelab/network/docs/network/devices.md` and `homelab/network/docs/network/vlans.md`; the Twingate service runs on the NAS per `homelab/network/docs/access/external-access.md`.
+
 ---
 
 ## Troubleshooting Access
@@ -141,8 +157,10 @@ spec:
 ### kubectl not working
 1. Ensure you're in Nix container: `make tools` from `~/homelab`
 2. Check kubeconfig: `ls -la ~/.kube/config` or `echo $KUBECONFIG`
-3. Verify API server: `curl -k https://10.0.20.11:6443`
+3. Verify API server: `curl -k https://10.0.20.50:6443`
 4. Check authentication: Ensure certificates/tokens are valid
+
+> **Evidence**: The control-plane API endpoint is `10.0.20.50:6443` per `kubectl cluster-info`, `~/.kube/config`, and the Ansible inventory `control_plane_endpoint` variable in `homelab/metal/inventories/prod.yml`. The old endpoint `10.0.20.11:6443` is obsolete.
 
 ---
 
@@ -155,3 +173,5 @@ spec:
 | **GitHub Mirror** | https://github.com/brimdor/homelab |
 | **Gitea API Docs** | https://git.eaglepass.io/api/swagger |
 | **Gitea Token** | `~/.config/gitea/.env` |
+
+> **Evidence**: Repository and documentation URLs are recorded in the canonical homelab access docs (`homelab/network/docs/access/external-access.md`) and the command-center rules index. The Gitea token path is the local convention used by homelab workflows.
